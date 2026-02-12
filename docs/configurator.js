@@ -51,6 +51,20 @@
   });
 
   var overridesEl = document.getElementById('cfg-overrides');
+  var patternPlatformFieldEl = document.getElementById('cfg-pattern-platform-field');
+  var patternPlatformSelect = document.getElementById('cfg-pattern-platform');
+
+  // Default patterns for each platform in "Specific file" mode
+  var PATTERN_PRESETS = {
+    'macos-arm64':   '\\.dmg$',
+    'macos-x64':     '(x86_64|intel)[^/]*\\.dmg$',
+    'windows-x64':   '\\.exe$',
+    'windows-arm64': 'arm64[^/]*\\.exe$',
+    'linux-x64':     '(amd64|x86_64)[^/]*\\.(deb|AppImage)$',
+    'linux-arm64':   '(aarch64|arm64)[^/]*\\.(deb|AppImage)$',
+    'ios-arm64':     '\\.ipa$',
+    'android-arm64': '\\.apk$'
+  };
 
   var lastRelease = null;
 
@@ -157,21 +171,30 @@
       advancedEl.removeAttribute('data-empty');
     }
 
-    // For pattern mode, auto-open advanced so the pattern field is visible
+    // Re-collapse Advanced when switching modes (unless user manually opened it)
     if (hasPattern) {
-      advancedLastProgrammaticState = true;
-      advancedEl.setAttribute('open', '');
+      // Pattern mode no longer auto-opens Advanced — the platform picker is the primary UI.
+      // Advanced opens only when user picks "Custom pattern…" from the dropdown.
+      if (!advancedManuallyOpened) {
+        advancedLastProgrammaticState = false;
+        advancedEl.removeAttribute('open');
+      }
     } else if (!advancedManuallyOpened && !isEmpty) {
       // Re-collapse when leaving pattern mode, unless the user manually opened it
       advancedLastProgrammaticState = false;
       advancedEl.removeAttribute('open');
     }
 
-    // Hide Platforms section in pattern mode (pattern bypasses platform detection)
+    // In pattern mode: hide Platforms section, show target platform picker
     if (hasPattern) {
       overridesEl.style.display = 'none';
+      patternPlatformFieldEl.style.display = '';
     } else {
       overridesEl.style.display = '';
+      patternPlatformFieldEl.style.display = 'none';
+      // Reset pattern picker and clear pattern when leaving pattern mode
+      patternPlatformSelect.value = '';
+      advPatternInput.value = '';
     }
   }
 
@@ -499,6 +522,20 @@
     updateAdvancedVisibility();
     generate();
   }); });
+  patternPlatformSelect.addEventListener('change', function () {
+    var val = this.value;
+    if (val === 'custom') {
+      // Open advanced and focus the pattern input
+      advancedLastProgrammaticState = true;
+      advancedEl.setAttribute('open', '');
+      advPatternInput.focus();
+    } else if (val && PATTERN_PRESETS[val]) {
+      advPatternInput.value = PATTERN_PRESETS[val];
+    } else {
+      advPatternInput.value = '';
+    }
+    generate();
+  });
   sourceRadios.forEach(function (r) { r.addEventListener('change', generate); });
   versionRadios.forEach(function (r) { r.addEventListener('change', function () {
     versionTag.disabled = this.value !== 'pinned';
