@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>download-latest: Platform Selector</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 600px; margin: 60px auto; padding: 0 20px; }
+    h1 { font-size: 20px; }
+    p { color: #666; }
+    #download-selector { margin: 24px 0; }
+    .dl-latest-selector {
+      padding: 8px 12px; font-size: 14px; border: 1px solid #ccc;
+      border-radius: 6px; min-width: 280px; margin-right: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Platform Selector Example</h1>
+  <p>A dropdown menu grouped by OS. Auto-detects your platform but lets you pick any asset.</p>
+  <div id="download-selector"></div>
+  <script src="../download-latest.js"></script>
+  <script>
+    const dl = new DownloadLatest({ repo: 'rustdesk/rustdesk' });
+    dl.attachSelector('#download-selector');
+  </script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fallback List – download-latest</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #111; color: #fff;
+      display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+    a { color: #58a6ff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .container { max-width: 600px; }
+    #assets { margin-top: 16px; font-size: 14px; line-height: 1.8; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>RustDesk – All Downloads</h2>
+    <p>All available assets from the latest release:</p>
+    <div id="assets">Loading…</div>
+    <script src="../download-latest.js" data-repo="rustdesk/rustdesk" data-fallback="#assets"></script>
+  </div>
+</body>
+</html>
