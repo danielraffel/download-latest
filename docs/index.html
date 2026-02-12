@@ -45,7 +45,7 @@
             <label title="Immediately starts the download (no button shown)"><input type="radio" name="cfg-mode" value="auto"> Auto-redirect</label>
             <label title="Returns the detected download URL for use in your own code"><input type="radio" name="cfg-mode" value="url"> URL only</label>
             <label title="Shows every downloadable file from the release"><input type="radio" name="cfg-mode" value="fallback"> All assets</label>
-            <label title="Match a file by name pattern, regardless of visitor's platform"><input type="radio" name="cfg-mode" value="pattern"> Specific file</label>
+            <label title="Link to one specific file by regex pattern — bypasses OS detection (e.g., always link to the .ipa)"><input type="radio" name="cfg-mode" value="pattern"> Specific file</label>
           </div>
         </div>
 
@@ -55,7 +55,7 @@
             <div class="field" id="cfg-adv-pattern-field">
               <label for="cfg-adv-pattern">File name pattern</label>
               <input type="text" id="cfg-adv-pattern" placeholder="e.g. \.ipa$ or rustdesk.*arm64\.apk$" value="">
-              <span class="field-hint">Regex to match a specific file from the latest release. First match wins.</span>
+              <span class="field-hint">Regex matched against all release asset names — ignores visitor's OS/arch. First match wins.</span>
             </div>
             <div class="field" id="cfg-adv-text-field">
               <label for="cfg-adv-text">Button text</label>

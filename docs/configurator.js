@@ -50,7 +50,19 @@
     if (toggle) platformToggles[key] = toggle;
   });
 
+  var overridesEl = document.getElementById('cfg-overrides');
+
   var lastRelease = null;
+
+  // Track whether the user manually toggled the Advanced section
+  var advancedManuallyOpened = false;
+  advancedEl.addEventListener('toggle', function () {
+    // If the toggle wasn't triggered by our code, mark it as manual
+    if (!advancedAutoToggling) {
+      advancedManuallyOpened = advancedEl.open;
+    }
+  });
+  var advancedAutoToggling = false;
 
   function getVal(name) {
     var el = document.querySelector('[name="' + name + '"]:checked');
@@ -129,14 +141,30 @@
 
     if (isEmpty) {
       advancedEl.setAttribute('data-empty', '');
+      advancedAutoToggling = true;
       advancedEl.removeAttribute('open');
+      advancedAutoToggling = false;
     } else {
       advancedEl.removeAttribute('data-empty');
     }
 
     // For pattern mode, auto-open advanced so the pattern field is visible
     if (hasPattern) {
+      advancedAutoToggling = true;
       advancedEl.setAttribute('open', '');
+      advancedAutoToggling = false;
+    } else if (!advancedManuallyOpened && !isEmpty) {
+      // Re-collapse when leaving pattern mode, unless the user manually opened it
+      advancedAutoToggling = true;
+      advancedEl.removeAttribute('open');
+      advancedAutoToggling = false;
+    }
+
+    // Hide Platforms section in pattern mode (pattern bypasses platform detection)
+    if (hasPattern) {
+      overridesEl.style.display = 'none';
+    } else {
+      overridesEl.style.display = '';
     }
   }
 
@@ -239,8 +267,9 @@
     var source = getVal('cfg-source');
     var version = getVal('cfg-version');
     var tag = versionTag.value.trim();
-    var overrides = getOverrides();
-    var excluded = getExcludedPlatforms();
+    // Pattern mode bypasses platform detection, so ignore overrides/exclusions
+    var overrides = (mode === 'pattern') ? null : getOverrides();
+    var excluded = (mode === 'pattern') ? [] : getExcludedPlatforms();
     var adv = getAdvancedConfig();
 
     // Build src URL
