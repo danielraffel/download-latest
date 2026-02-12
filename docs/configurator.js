@@ -260,6 +260,7 @@
 
     // Determine if we need programmatic mode
     var needsProgrammatic = overrides || excluded.length > 0 || mode === 'url' || mode === 'pattern' ||
+      mode === 'fallback' ||
       (mode === 'button' && (adv.bg || adv.fg || adv.radius)) ||
       adv.noMatchText || adv.noMatchUrl || adv.contextMenu || adv.showSelector;
 
@@ -350,11 +351,9 @@
         attrs.push('  data-theme="' + adv.theme + '"');
       }
       if (mode === 'auto') attrs.push('  data-auto');
-      if (mode === 'fallback') attrs.push('  data-fallback="#downloads"');
       if (mode === 'custom') attrs.push('  data-target="#your-button"');
 
       snippet = '';
-      if (mode === 'fallback') snippet += '<div id="downloads"></div>\n';
       if (mode === 'custom') snippet += '<a id="your-button" href="#">Download</a>\n';
       snippet += '<script\n' + attrs.join('\n') + '\n><\/script>';
     }

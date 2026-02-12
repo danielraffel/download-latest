@@ -28,7 +28,10 @@
         <div class="field">
           <label for="cfg-repo">GitHub Repo</label>
           <div style="display:flex; gap:8px">
-            <input type="text" id="cfg-repo" placeholder="owner/repo" value="rustdesk/rustdesk">
+            <div class="input-group">
+              <span class="input-prefix">https://github.com/</span>
+              <input type="text" id="cfg-repo" placeholder="owner/repo" value="rustdesk/rustdesk">
+            </div>
             <button id="cfg-test" style="padding:8px 16px; background:var(--accent); color:var(--bg); border:none; border-radius:var(--radius); cursor:pointer; font-size:14px; white-space:nowrap;">Test</button>
           </div>
           <div id="cfg-assets" class="assets-found"></div>
@@ -36,13 +39,13 @@
 
         <div class="field">
           <label>Mode</label>
-          <div class="mode-options">
-            <label class="mode-option"><input type="radio" name="cfg-mode" value="button" checked> <span><strong>Button</strong> — Creates a styled download button</span></label>
-            <label class="mode-option"><input type="radio" name="cfg-mode" value="custom"> <span><strong>Bind existing element</strong> — Attaches to your own button/link and sets its href + text</span></label>
-            <label class="mode-option"><input type="radio" name="cfg-mode" value="auto"> <span><strong>Auto-redirect</strong> — Immediately starts the download (no button shown)</span></label>
-            <label class="mode-option"><input type="radio" name="cfg-mode" value="url"> <span><strong>URL only</strong> — Returns the detected download URL for use in your own code</span></label>
-            <label class="mode-option"><input type="radio" name="cfg-mode" value="fallback"> <span><strong>All assets list</strong> — Shows every downloadable file from the release</span></label>
-            <label class="mode-option"><input type="radio" name="cfg-mode" value="pattern"> <span><strong>Link to specific file</strong> — Match a file by name pattern, regardless of visitor's platform</span></label>
+          <div class="radio-group mode-chips">
+            <label title="Creates a styled download button"><input type="radio" name="cfg-mode" value="button" checked> Button</label>
+            <label title="Attaches to your own button/link and sets its href + text"><input type="radio" name="cfg-mode" value="custom"> Bind element</label>
+            <label title="Immediately starts the download (no button shown)"><input type="radio" name="cfg-mode" value="auto"> Auto-redirect</label>
+            <label title="Returns the detected download URL for use in your own code"><input type="radio" name="cfg-mode" value="url"> URL only</label>
+            <label title="Shows every downloadable file from the release"><input type="radio" name="cfg-mode" value="fallback"> All assets</label>
+            <label title="Match a file by name pattern, regardless of visitor's platform"><input type="radio" name="cfg-mode" value="pattern"> Specific file</label>
           </div>
         </div>
 
