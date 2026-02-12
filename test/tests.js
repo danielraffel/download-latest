@@ -26,6 +26,8 @@
     { name: 'rustdesk-1.4.5-aarch64.rpm', browser_download_url: 'https://example.com/aarch64.rpm', size: 9500000 },
     { name: 'rustdesk-1.4.5-x86_64.rpm', browser_download_url: 'https://example.com/x86_64.rpm', size: 9500000 },
     { name: 'rustdesk-1.4.5-unsigned.tar.gz', browser_download_url: 'https://example.com/source.tar.gz', size: 5000000 },
+    { name: 'rustdesk-1.4.5.ipa', browser_download_url: 'https://example.com/rustdesk.ipa', size: 15000000 },
+    { name: 'rustdesk-1.4.5-arm64.apk', browser_download_url: 'https://example.com/arm64.apk', size: 14000000 },
     { name: 'rustdesk-1.4.5-aarch64.dmg.sha256', browser_download_url: 'https://example.com/aarch64.dmg.sha256', size: 100 },
     { name: 'rustdesk-1.4.5-x86_64.exe.blockmap', browser_download_url: 'https://example.com/x86_64.exe.blockmap', size: 200 },
   ];
@@ -47,7 +49,7 @@
   });
 
   test('filterAssets keeps valid assets', function () {
-    assert(filteredAssets.length === 11, 'expected 11 assets after filtering, got ' + filteredAssets.length);
+    assert(filteredAssets.length === 13, 'expected 13 assets after filtering, got ' + filteredAssets.length);
   });
 
   // =====================
@@ -96,9 +98,65 @@
     assertEqual(result.name, 'rustdesk-1.4.5-x86_64.deb');
   });
 
+  test('iOS arm64 → .ipa', function () {
+    var result = DownloadLatest.matchAsset(filteredAssets, 'ios', 'arm64', null);
+    assertEqual(result.name, 'rustdesk-1.4.5.ipa');
+  });
+
+  test('Android arm64 → arm64.apk', function () {
+    var result = DownloadLatest.matchAsset(filteredAssets, 'android', 'arm64', null);
+    assertEqual(result.name, 'rustdesk-1.4.5-arm64.apk');
+  });
+
   test('empty assets → null', function () {
     var result = DownloadLatest.matchAsset([], 'macos', 'arm64', null);
     assert(result === null, 'should return null for empty assets');
+  });
+
+  // =====================
+  // classifyAsset tests
+  // =====================
+
+  test('classifyAsset identifies .ipa as ios-arm64', function () {
+    var result = DownloadLatest.classifyAsset({ name: 'app.ipa' });
+    assert(result.indexOf('ios-arm64') !== -1, 'should classify .ipa as ios-arm64');
+  });
+
+  test('classifyAsset identifies .apk as android-arm64', function () {
+    var result = DownloadLatest.classifyAsset({ name: 'app-arm64.apk' });
+    assert(result.indexOf('android-arm64') !== -1, 'should classify .apk as android-arm64');
+  });
+
+  test('classifyAsset identifies .dmg as macOS', function () {
+    var result = DownloadLatest.classifyAsset({ name: 'app-aarch64.dmg' });
+    assert(result.indexOf('macos-arm64') !== -1, 'should classify aarch64.dmg as macos-arm64');
+  });
+
+  // =====================
+  // Pattern mode tests
+  // =====================
+
+  test('pattern config matches specific file', async function () {
+    var dl = new DownloadLatest({ repo: 'rustdesk/rustdesk', pattern: '\\.ipa$' });
+    var result = await dl.get();
+    if (result.allAssets.length > 0) {
+      // Check if any .ipa exists; if so, it should match
+      var hasIpa = result.allAssets.some(function (a) { return /\.ipa$/i.test(a.name); });
+      if (hasIpa) {
+        assert(result.matched, 'should match .ipa file');
+        assert(/\.ipa$/i.test(result.asset), 'matched asset should be .ipa');
+      }
+    }
+  });
+
+  test('pattern mode defaults text to Download', function () {
+    var dl = new DownloadLatest({ repo: 'a/b', pattern: '\\.ipa$' });
+    assertEqual(dl.text, 'Download');
+  });
+
+  test('pattern mode uses custom text when provided', function () {
+    var dl = new DownloadLatest({ repo: 'a/b', pattern: '\\.ipa$', text: 'Get iOS app' });
+    assertEqual(dl.text, 'Get iOS app');
   });
 
   // =====================
@@ -116,7 +174,7 @@
 
   test('detectPlatform os is one of known values', function () {
     var p = DownloadLatest.detectPlatform();
-    var valid = ['macos', 'windows', 'linux', null];
+    var valid = ['macos', 'windows', 'linux', 'ios', 'android', null];
     assert(valid.indexOf(p.os) !== -1, 'os "' + p.os + '" not in known values');
   });
 

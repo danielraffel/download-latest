@@ -17,6 +17,7 @@
 
   // Advanced section
   var advancedEl = document.getElementById('cfg-advanced');
+  var advPatternInput = document.getElementById('cfg-adv-pattern');
   var advTextInput = document.getElementById('cfg-adv-text');
   var advBgInput = document.getElementById('cfg-adv-bg');
   var advBgPicker = document.getElementById('cfg-adv-bg-picker');
@@ -29,6 +30,7 @@
   var advContextMenuInput = document.getElementById('cfg-adv-context-menu');
   var advSelectorInput = document.getElementById('cfg-adv-selector');
 
+  var advPatternFieldEl = document.getElementById('cfg-adv-pattern-field');
   var advTextFieldEl = document.getElementById('cfg-adv-text-field');
   var advStyleFieldsEl = document.getElementById('cfg-adv-style-fields');
   var advThemeFieldEl = document.getElementById('cfg-adv-theme-field');
@@ -38,7 +40,7 @@
   var advSelectorFieldEl = document.getElementById('cfg-adv-selector-field');
 
   // Platform overrides with checkboxes
-  var ALL_PLATFORMS = ['macos-arm64', 'macos-x64', 'windows-x64', 'windows-arm64', 'linux-x64', 'linux-arm64'];
+  var ALL_PLATFORMS = ['macos-arm64', 'macos-x64', 'windows-x64', 'windows-arm64', 'linux-x64', 'linux-arm64', 'ios-arm64', 'android-arm64'];
 
   var overrideFields = {};
   var platformToggles = {};
@@ -60,6 +62,9 @@
     var hasAny = false;
     for (var key in overrideFields) {
       if (!overrideFields[key]) continue;
+      // Only include overrides for enabled platforms
+      var toggle = platformToggles[key];
+      if (toggle && !toggle.checked) continue;
       var v = overrideFields[key].value.trim();
       if (v) { m[key] = v; hasAny = true; }
     }
@@ -98,19 +103,22 @@
 
   function updateAdvancedVisibility() {
     var mode = getVal('cfg-mode');
-    // Modes that show button styling: button only (user styles their own element in custom mode)
-    var hasButtonStyle = (mode === 'button');
-    // Modes that show text customization: button, custom (lets user put OS-detected text on their own element)
-    var hasText = (mode === 'button' || mode === 'custom');
-    // Modes that show no-match options: button, custom (these show a button that may say wrong thing)
-    var hasNoMatch = (mode === 'button' || mode === 'custom');
+    // Pattern mode: shows pattern field + text + style
+    var hasPattern = (mode === 'pattern');
+    // Modes that show button styling: button, pattern (pattern creates a button too)
+    var hasButtonStyle = (mode === 'button' || mode === 'pattern');
+    // Modes that show text customization: button, custom, pattern
+    var hasText = (mode === 'button' || mode === 'custom' || mode === 'pattern');
+    // Modes that show no-match options: button, custom, pattern
+    var hasNoMatch = (mode === 'button' || mode === 'custom' || mode === 'pattern');
     // Modes that can use context menu: button, custom
     var hasContextMenu = (mode === 'button' || mode === 'custom');
     // Modes that can show platform selector: button, custom
     var hasSelector = (mode === 'button' || mode === 'custom');
     // Modes with nothing relevant in Advanced
-    var isEmpty = !hasText && !hasButtonStyle && !hasNoMatch && !hasContextMenu && !hasSelector;
+    var isEmpty = !hasText && !hasButtonStyle && !hasNoMatch && !hasContextMenu && !hasSelector && !hasPattern;
 
+    advPatternFieldEl.style.display = hasPattern ? '' : 'none';
     advTextFieldEl.style.display = hasText ? '' : 'none';
     advStyleFieldsEl.style.display = hasButtonStyle ? '' : 'none';
     advThemeFieldEl.style.display = hasButtonStyle ? '' : 'none';
@@ -124,6 +132,11 @@
       advancedEl.removeAttribute('open');
     } else {
       advancedEl.removeAttribute('data-empty');
+    }
+
+    // For pattern mode, auto-open advanced so the pattern field is visible
+    if (hasPattern) {
+      advancedEl.setAttribute('open', '');
     }
   }
 
@@ -197,6 +210,7 @@
   // --- Generate snippet ---
 
   function getAdvancedConfig() {
+    var pattern = advPatternInput.value.trim();
     var text = advTextInput.value.trim();
     var bg = advBgInput.value.trim();
     var fg = advFgInput.value.trim();
@@ -206,7 +220,7 @@
     var theme = getVal('cfg-theme');
     var contextMenu = advContextMenuInput.checked;
     var showSelector = advSelectorInput.checked;
-    return { text: text, bg: bg, fg: fg, radius: radius, noMatchText: noMatchText, noMatchUrl: noMatchUrl, theme: theme, contextMenu: contextMenu, showSelector: showSelector };
+    return { pattern: pattern, text: text, bg: bg, fg: fg, radius: radius, noMatchText: noMatchText, noMatchUrl: noMatchUrl, theme: theme, contextMenu: contextMenu, showSelector: showSelector };
   }
 
   function buildStyleAttr(adv) {
@@ -245,7 +259,7 @@
     var snippet;
 
     // Determine if we need programmatic mode
-    var needsProgrammatic = overrides || excluded.length > 0 || mode === 'url' ||
+    var needsProgrammatic = overrides || excluded.length > 0 || mode === 'url' || mode === 'pattern' ||
       (mode === 'button' && (adv.bg || adv.fg || adv.radius)) ||
       adv.noMatchText || adv.noMatchUrl || adv.contextMenu || adv.showSelector;
 
@@ -253,6 +267,9 @@
       var configLines = ['  repo: \'' + repo + '\''];
       if (version === 'pinned' && tag) {
         configLines.push('  version: \'' + tag + '\'');
+      }
+      if (mode === 'pattern' && adv.pattern) {
+        configLines.push('  pattern: /' + adv.pattern + '/i');
       }
       if (adv.text) {
         configLines.push('  text: \'' + adv.text.replace(/'/g, "\\'") + '\'');
@@ -274,10 +291,10 @@
         configLines.push('  match: {\n' + matchLines.join(',\n') + '\n  }');
       }
 
-      // Build the selector options if selector is enabled with exclusions
-      var selectorOptsStr = '';
-      if (adv.showSelector && excluded.length > 0) {
-        selectorOptsStr = '{ exclude: [\'' + excluded.join('\', \'') + '\'] }';
+      // Build exclude options string for selector and fallback
+      var excludeOptsStr = '';
+      if (excluded.length > 0) {
+        excludeOptsStr = '{ exclude: [\'' + excluded.join('\', \'') + '\'] }';
       }
 
       if (mode === 'url') {
@@ -289,22 +306,34 @@
           '  const dl = new DownloadLatest({\n' + configLines.join(',\n') + '\n  });\n' +
           '  dl.get().then(r => { if (r.matched) location.replace(r.url); });\n<\/script>';
       } else if (mode === 'fallback') {
+        var fallbackOpts = excludeOptsStr ? ', ' + excludeOptsStr : '';
         snippet = '<div id="downloads"></div>\n<script src="' + src + '"><\/script>\n<script>\n' +
           '  const dl = new DownloadLatest({\n' + configLines.join(',\n') + '\n  });\n' +
-          '  dl.attachFallback(\'#downloads\');\n<\/script>';
-      } else {
-        // button or custom with programmatic
+          '  dl.attachFallback(\'#downloads\'' + fallbackOpts + ');\n<\/script>';
+      } else if (mode === 'pattern') {
+        // Pattern mode: creates a button that links to a specific file
         var styleStr = buildStyleAttr(adv);
         var elTag = '<a id="dl" href="#">Download</a>';
         if (styleStr) {
           elTag = '<a id="dl" href="#" style="' + styleStr + '">Download</a>';
         }
+        snippet = elTag + '\n<script src="' + src + '"><\/script>\n<script>\n' +
+          '  const dl = new DownloadLatest({\n' + configLines.join(',\n') + '\n  });\n' +
+          '  dl.attach(\'#dl\');\n<\/script>';
+      } else {
+        // button or custom with programmatic
+        var styleStr2 = buildStyleAttr(adv);
+        var elTag2 = '<a id="dl" href="#">Download</a>';
+        if (styleStr2) {
+          elTag2 = '<a id="dl" href="#" style="' + styleStr2 + '">Download</a>';
+        }
         var attachCalls = '  dl.attach(\'#dl\');\n';
         if (adv.showSelector) {
-          elTag += '\n<div id="dl-selector"></div>';
-          attachCalls += '  dl.attachSelector(\'#dl-selector\'' + (selectorOptsStr ? ', ' + selectorOptsStr : '') + ');\n';
+          var selectorOptsStr = excludeOptsStr ? ', ' + excludeOptsStr : '';
+          elTag2 += '\n<div id="dl-selector"></div>';
+          attachCalls += '  dl.attachSelector(\'#dl-selector\'' + selectorOptsStr + ');\n';
         }
-        snippet = elTag + '\n<script src="' + src + '"><\/script>\n<script>\n' +
+        snippet = elTag2 + '\n<script src="' + src + '"><\/script>\n<script>\n' +
           '  const dl = new DownloadLatest({\n' + configLines.join(',\n') + '\n  });\n' +
           attachCalls + '<\/script>';
       }
@@ -346,8 +375,11 @@
       div.style.textAlign = 'left';
       div.textContent = 'Loading assets\u2026';
       previewEl.appendChild(div);
-      var dl = new DownloadLatest({ repo: repo });
-      dl.attachFallback(div);
+      var cfg = { repo: repo };
+      var dl = new DownloadLatest(cfg);
+      var fallbackOpts = {};
+      if (excluded && excluded.length > 0) fallbackOpts.exclude = excluded;
+      dl.attachFallback(div, fallbackOpts);
     } else if (mode === 'auto' || mode === 'url') {
       var info = document.createElement('div');
       info.style.color = 'var(--text-muted)';
@@ -366,24 +398,42 @@
         }
       });
       previewEl.appendChild(info);
-    } else {
-      // button or custom mode
+    } else if (mode === 'pattern') {
+      // Pattern mode preview: show button linking to matched file
       var btn = document.createElement('a');
       btn.className = 'dl-latest-btn';
       btn.href = '#';
       btn.textContent = 'Loading\u2026';
-      // Apply advanced styles to preview
       if (adv && adv.bg) btn.style.background = adv.bg;
       if (adv && adv.fg) btn.style.color = adv.fg;
       if (adv && adv.radius) btn.style.borderRadius = adv.radius;
       previewEl.appendChild(btn);
 
-      var cfg = { repo: repo };
-      if (adv && adv.text) cfg.text = adv.text;
-      if (adv && adv.noMatchText) cfg.noMatchText = adv.noMatchText;
-      if (adv && adv.noMatchUrl) cfg.noMatchUrl = adv.noMatchUrl;
-      var dl3 = new DownloadLatest(cfg);
-      dl3.attach(btn);
+      var patternCfg = { repo: repo };
+      if (adv && adv.pattern) patternCfg.pattern = adv.pattern;
+      if (adv && adv.text) patternCfg.text = adv.text;
+      if (adv && adv.noMatchText) patternCfg.noMatchText = adv.noMatchText;
+      if (adv && adv.noMatchUrl) patternCfg.noMatchUrl = adv.noMatchUrl;
+      var dl4 = new DownloadLatest(patternCfg);
+      dl4.attach(btn);
+    } else {
+      // button or custom mode
+      var btn2 = document.createElement('a');
+      btn2.className = 'dl-latest-btn';
+      btn2.href = '#';
+      btn2.textContent = 'Loading\u2026';
+      // Apply advanced styles to preview
+      if (adv && adv.bg) btn2.style.background = adv.bg;
+      if (adv && adv.fg) btn2.style.color = adv.fg;
+      if (adv && adv.radius) btn2.style.borderRadius = adv.radius;
+      previewEl.appendChild(btn2);
+
+      var cfg2 = { repo: repo };
+      if (adv && adv.text) cfg2.text = adv.text;
+      if (adv && adv.noMatchText) cfg2.noMatchText = adv.noMatchText;
+      if (adv && adv.noMatchUrl) cfg2.noMatchUrl = adv.noMatchUrl;
+      var dl3 = new DownloadLatest(cfg2);
+      dl3.attach(btn2);
 
       // Show platform selector in preview if checked
       if (adv && adv.showSelector) {
@@ -401,6 +451,7 @@
 
   repoInput.addEventListener('input', generate);
   versionTag.addEventListener('input', generate);
+  advPatternInput.addEventListener('input', generate);
   advTextInput.addEventListener('input', generate);
   advRadiusInput.addEventListener('input', generate);
   advNoMatchTextInput.addEventListener('input', generate);

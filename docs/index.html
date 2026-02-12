@@ -62,6 +62,7 @@
           <tr><td><code>data-no-match-url</code></td><td>URL when no match (default: releases page). E.g., a waitlist URL</td></tr>
           <tr><td><code>data-selector</code></td><td>CSS selector for element to render platform dropdown into</td></tr>
           <tr><td><code>data-theme</code></td><td>Button theme: <code>auto</code> (follows system), <code>dark</code>, or omit for light</td></tr>
+          <tr><td><code>data-pattern</code></td><td>Regex to match a specific file by name, ignoring platform detection (e.g., <code>\.ipa$</code>)</td></tr>
           <tr><td><code>data-context-menu</code></td><td>Enable right-click to open releases page (disabled by default)</td></tr>
         </tbody>
       </table>
@@ -103,12 +104,18 @@
             <label class="mode-option"><input type="radio" name="cfg-mode" value="auto"> <span><strong>Auto-redirect</strong> — Immediately starts the download (no button shown)</span></label>
             <label class="mode-option"><input type="radio" name="cfg-mode" value="url"> <span><strong>URL only</strong> — Returns the detected download URL for use in your own code</span></label>
             <label class="mode-option"><input type="radio" name="cfg-mode" value="fallback"> <span><strong>All assets list</strong> — Shows every downloadable file from the release</span></label>
+            <label class="mode-option"><input type="radio" name="cfg-mode" value="pattern"> <span><strong>Link to specific file</strong> — Match a file by name pattern, regardless of visitor's platform</span></label>
           </div>
         </div>
 
         <details class="collapsible advanced-section" id="cfg-advanced">
           <summary>Advanced</summary>
           <div class="fields">
+            <div class="field" id="cfg-adv-pattern-field">
+              <label for="cfg-adv-pattern">File name pattern</label>
+              <input type="text" id="cfg-adv-pattern" placeholder="e.g. \.ipa$ or rustdesk.*arm64\.apk$" value="">
+              <span class="field-hint">Regex to match a specific file from the latest release. First match wins.</span>
+            </div>
             <div class="field" id="cfg-adv-text-field">
               <label for="cfg-adv-text">Button text</label>
               <input type="text" id="cfg-adv-text" placeholder="Download for {os}" value="">
@@ -217,6 +224,14 @@
               <label class="checkbox-label"><input type="checkbox" class="cfg-platform-toggle" data-platform="linux-arm64" checked> Linux arm64</label>
               <input type="text" id="cfg-match-linux-arm64" placeholder="e.g. aarch64\.deb$">
             </div>
+            <div class="field platform-field">
+              <label class="checkbox-label"><input type="checkbox" class="cfg-platform-toggle" data-platform="ios-arm64" checked> iOS</label>
+              <input type="text" id="cfg-match-ios-arm64" placeholder="e.g. \.ipa$">
+            </div>
+            <div class="field platform-field">
+              <label class="checkbox-label"><input type="checkbox" class="cfg-platform-toggle" data-platform="android-arm64" checked> Android</label>
+              <input type="text" id="cfg-match-android-arm64" placeholder="e.g. \.apk$">
+            </div>
           </div>
         </details>
 
@@ -237,7 +252,7 @@
     <section>
       <h2>How It Works</h2>
       <ul>
-        <li>Detects visitor's OS and architecture via <code>navigator.userAgentData</code> with UA string fallback</li>
+        <li>Detects visitor's OS (macOS, Windows, Linux, iOS, Android) and architecture via <code>navigator.userAgentData</code> with UA string fallback</li>
         <li>Fetches latest release from GitHub API (cached 5 min in <code>sessionStorage</code>)</li>
         <li>Matches assets against platform-specific regex patterns</li>
         <li>If matched: links to the binary. If not: shows configurable fallback text</li>
@@ -252,7 +267,7 @@
 
   </div>
 
-  <script src="https://cdn.jsdelivr.net/gh/danielraffel/download-latest@main/download-latest.min.js"></script>
+  <script src="../download-latest.js"></script>
   <script src="configurator.js"></script>
 </body>
 </html>

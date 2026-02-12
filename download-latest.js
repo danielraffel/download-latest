@@ -23,6 +23,7 @@
       if (p === 'macos' || p === 'mac os x') os = 'macos';
       else if (p === 'windows') os = 'windows';
       else if (p === 'linux' || p === 'chromeos') os = 'linux';
+      else if (p === 'android') os = 'android';
 
       if (uaData.architecture) {
         var a = uaData.architecture.toLowerCase();
@@ -36,7 +37,10 @@
       var plat = (navigator.platform || '').toLowerCase();
 
       if (!os) {
-        if (ua.indexOf('mac') !== -1) os = 'macos';
+        // Check iOS/Android before generic matches
+        if (/iphone|ipad|ipod/.test(ua)) os = 'ios';
+        else if (ua.indexOf('android') !== -1) os = 'android';
+        else if (ua.indexOf('mac') !== -1) os = 'macos';
         else if (ua.indexOf('win') !== -1) os = 'windows';
         else if (ua.indexOf('linux') !== -1 || ua.indexOf('cros') !== -1) os = 'linux';
       }
@@ -45,6 +49,8 @@
         if (ua.indexOf('arm') !== -1 || ua.indexOf('aarch64') !== -1) arch = 'arm64';
         else if (plat.indexOf('arm') !== -1) arch = 'arm64';
         else if (os === 'macos') arch = 'arm64'; // Apple Silicon is the majority now
+        else if (os === 'ios') arch = 'arm64';     // All iOS devices are ARM
+        else if (os === 'android') arch = 'arm64'; // Most Android devices are ARM
         else arch = 'x64';
       }
     }
@@ -61,7 +67,9 @@
     'windows-x64':   [/[-_.]x86[_-]64[^/]*\.exe$/i, /[-_.]x64[^/]*\.exe$/i, /\.exe$/i, /\.msi$/i],
     'windows-arm64': [/[-_.]arm64[^/]*\.exe$/i, /[-_.]x86[_-]64[^/]*\.exe$/i, /\.exe$/i],
     'linux-x64':     [/[-_.]x86[_-]64[^/]*\.AppImage$/i, /[-_.]amd64[^/]*\.deb$/i, /[-_.]x86[_-]64[^/]*\.deb$/i, /[-_.]amd64[^/]*\.AppImage$/i],
-    'linux-arm64':   [/[-_.]aarch64[^/]*\.AppImage$/i, /[-_.]arm64[^/]*\.deb$/i, /[-_.]aarch64[^/]*\.deb$/i, /[-_.]aarch64[^/]*\.rpm$/i]
+    'linux-arm64':   [/[-_.]aarch64[^/]*\.AppImage$/i, /[-_.]arm64[^/]*\.deb$/i, /[-_.]aarch64[^/]*\.deb$/i, /[-_.]aarch64[^/]*\.rpm$/i],
+    'ios-arm64':     [/\.ipa$/i],
+    'android-arm64': [/[-_.]arm64[^/]*\.apk$/i, /\.apk$/i, /[-_.]arm64[^/]*\.aab$/i]
   };
 
   // Files to exclude from asset lists
@@ -141,7 +149,8 @@
     this.repo = config.repo;
     this.version = config.version || null;
     this.match = config.match || null;
-    this.text = config.text || 'Download for {os}';
+    this.pattern = config.pattern || null;       // regex or string: match a specific file regardless of platform
+    this.text = config.text || (this.pattern ? 'Download' : 'Download for {os}');
     this.noMatchText = config.noMatchText || 'View all downloads';
     this.noMatchUrl = config.noMatchUrl || null; // null = use releases page
     this.contextMenu = !!config.contextMenu;     // opt-in: right-click opens releases page
@@ -155,9 +164,17 @@
     var platform = detectPlatform();
 
     this._promise = fetchRelease(this.repo, this.version).then(function (release) {
-      var asset = (platform.os && platform.arch)
-        ? matchAsset(release.assets, platform.os, platform.arch, self.match)
-        : null;
+      var asset = null;
+
+      if (self.pattern) {
+        // Pattern mode: match a specific file regardless of platform
+        var re = (self.pattern instanceof RegExp) ? self.pattern : new RegExp(self.pattern, 'i');
+        for (var i = 0; i < release.assets.length; i++) {
+          if (re.test(release.assets[i].name)) { asset = release.assets[i]; break; }
+        }
+      } else if (platform.os && platform.arch) {
+        asset = matchAsset(release.assets, platform.os, platform.arch, self.match);
+      }
 
       return {
         url: asset ? asset.url : release.releasesUrl,
@@ -204,7 +221,7 @@
         el.onclick = function () { window.location.href = targetUrl; };
       }
 
-      var osLabels = { macos: 'macOS', windows: 'Windows', linux: 'Linux' };
+      var osLabels = { macos: 'macOS', windows: 'Windows', linux: 'Linux', ios: 'iOS', android: 'Android' };
       var label = osLabels[result.os] || 'your platform';
 
       if (result.matched) {
@@ -237,15 +254,32 @@
     });
   };
 
-  DownloadLatest.prototype.attachFallback = function (selectorOrEl) {
+  DownloadLatest.prototype.attachFallback = function (selectorOrEl, opts) {
     var el = typeof selectorOrEl === 'string'
       ? document.querySelector(selectorOrEl)
       : selectorOrEl;
     if (!el) return;
 
+    opts = opts || {};
+    var excludePlatforms = opts.exclude || [];
+
     this.get().then(function (result) {
       el.innerHTML = '';
       var assets = result.allAssets;
+
+      // Filter by excluded platforms if specified
+      if (excludePlatforms.length > 0) {
+        assets = assets.filter(function (asset) {
+          var platforms = classifyAsset(asset);
+          // Keep asset if it has no platform classification or has at least one non-excluded platform
+          if (platforms.length === 0) return true;
+          for (var i = 0; i < platforms.length; i++) {
+            if (excludePlatforms.indexOf(platforms[i]) === -1) return true;
+          }
+          return false;
+        });
+      }
+
       if (!assets.length) {
         var a = document.createElement('a');
         a.href = result.releasesUrl;
@@ -277,7 +311,9 @@
     'windows-x64': 'Windows (64-bit)',
     'windows-arm64': 'Windows (ARM)',
     'linux-x64': 'Linux (x86_64)',
-    'linux-arm64': 'Linux (ARM64)'
+    'linux-arm64': 'Linux (ARM64)',
+    'ios-arm64': 'iOS',
+    'android-arm64': 'Android'
   };
 
   // Identify which platform key an asset belongs to (best effort)
@@ -285,6 +321,14 @@
     var name = asset.name.toLowerCase();
     var results = [];
 
+    // iOS
+    if (/\.ipa$/i.test(name)) {
+      results.push('ios-arm64');
+    }
+    // Android
+    if (/\.apk$|\.aab$/i.test(name)) {
+      results.push('android-arm64');
+    }
     // macOS
     if (/\.dmg$|\.pkg$|macos|darwin/i.test(name)) {
       if (/aarch64|arm64/i.test(name)) results.push('macos-arm64');
@@ -330,7 +374,7 @@
 
       // Group assets by platform
       var grouped = {};
-      var platformOrder = ['macos-arm64', 'macos-x64', 'windows-x64', 'windows-arm64', 'linux-x64', 'linux-arm64'];
+      var platformOrder = ['macos-arm64', 'macos-x64', 'windows-x64', 'windows-arm64', 'linux-x64', 'linux-arm64', 'ios-arm64', 'android-arm64'];
 
       for (var i = 0; i < assets.length; i++) {
         var platforms = classifyAsset(assets[i]);
@@ -454,6 +498,7 @@
     var dl = new DownloadLatest({
       repo: ds.repo,
       version: ds.version || null,
+      pattern: ds.pattern || null,
       text: ds.text || 'Download for {os}',
       noMatchText: ds.noMatchText || undefined,
       noMatchUrl: ds.noMatchUrl || undefined,
@@ -503,6 +548,7 @@
   DownloadLatest.detectPlatform = detectPlatform;
   DownloadLatest.matchAsset = matchAsset;
   DownloadLatest.filterAssets = filterAssets;
+  DownloadLatest.classifyAsset = classifyAsset;
   DownloadLatest.DEFAULT_MATCH = DEFAULT_MATCH;
 
   return DownloadLatest;
