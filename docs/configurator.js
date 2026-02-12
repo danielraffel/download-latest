@@ -570,6 +570,30 @@
     });
   });
 
+  // Regex tooltip click-to-pin behaviour.
+  // Clicking the info icon toggles the popup open/closed and prevents the
+  // click from reaching the parent <label> (which would toggle the checkbox).
+  // Clicking anywhere outside an open popup closes it.
+  document.querySelectorAll('.regex-tip').forEach(function (tip) {
+    tip.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var wasActive = tip.classList.contains('active');
+      // Close any other open tooltips first
+      document.querySelectorAll('.regex-tip.active').forEach(function (t) {
+        t.classList.remove('active');
+      });
+      if (!wasActive) {
+        tip.classList.add('active');
+      }
+    });
+  });
+  document.addEventListener('click', function () {
+    document.querySelectorAll('.regex-tip.active').forEach(function (t) {
+      t.classList.remove('active');
+    });
+  });
+
   // Initial state
   updateAdvancedVisibility();
   updatePlatformFieldStates();

@@ -162,7 +162,9 @@ footer a:hover { color: var(--accent); }
   box-shadow: 0 4px 12px rgba(0,0,0,.4); color: var(--text-muted);
 }
 .regex-tip .tip-popup code { font-size: 11px; background: var(--bg); padding: 1px 5px; border-radius: 3px; color: var(--text); }
-.regex-tip:hover .tip-popup, .regex-tip .tip-popup:hover { display: block; }
+.regex-tip:hover .tip-popup { display: block; }
+.regex-tip.active .tip-popup { display: block; }
+.regex-tip .tip-popup { user-select: text; cursor: text; }
 
 /* Table */
 table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 14px; }
