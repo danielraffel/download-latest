@@ -54,15 +54,25 @@
 
   var lastRelease = null;
 
-  // Track whether the user manually toggled the Advanced section
+  // Track whether the user manually toggled the Advanced section.
+  // We track this by comparing against the last state we programmatically set,
+  // rather than using a synchronous flag, because the toggle event on <details>
+  // can fire asynchronously in some browsers.
   var advancedManuallyOpened = false;
+  var advancedLastProgrammaticState = null; // null = no programmatic change yet
   advancedEl.addEventListener('toggle', function () {
-    // If the toggle wasn't triggered by our code, mark it as manual
-    if (!advancedAutoToggling) {
+    if (advancedLastProgrammaticState === null) {
+      // No programmatic toggle has happened yet — this is a manual action
       advancedManuallyOpened = advancedEl.open;
+    } else if (advancedEl.open === advancedLastProgrammaticState) {
+      // Matches what we programmatically set — ignore
+      advancedLastProgrammaticState = null;
+    } else {
+      // Doesn't match — user toggled it manually after our programmatic change
+      advancedManuallyOpened = advancedEl.open;
+      advancedLastProgrammaticState = null;
     }
   });
-  var advancedAutoToggling = false;
 
   function getVal(name) {
     var el = document.querySelector('[name="' + name + '"]:checked');
@@ -141,23 +151,20 @@
 
     if (isEmpty) {
       advancedEl.setAttribute('data-empty', '');
-      advancedAutoToggling = true;
+      advancedLastProgrammaticState = false;
       advancedEl.removeAttribute('open');
-      advancedAutoToggling = false;
     } else {
       advancedEl.removeAttribute('data-empty');
     }
 
     // For pattern mode, auto-open advanced so the pattern field is visible
     if (hasPattern) {
-      advancedAutoToggling = true;
+      advancedLastProgrammaticState = true;
       advancedEl.setAttribute('open', '');
-      advancedAutoToggling = false;
     } else if (!advancedManuallyOpened && !isEmpty) {
       // Re-collapse when leaving pattern mode, unless the user manually opened it
-      advancedAutoToggling = true;
+      advancedLastProgrammaticState = false;
       advancedEl.removeAttribute('open');
-      advancedAutoToggling = false;
     }
 
     // Hide Platforms section in pattern mode (pattern bypasses platform detection)
