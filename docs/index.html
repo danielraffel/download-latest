@@ -12,7 +12,7 @@
 
     <header>
       <h1>download-latest</h1>
-      <p>Add a "download latest" button to any site.<br>Auto-detects OS and architecture. One script tag.</p>
+      <p>Link to the latest GitHub release for any platform.<br>Auto-detects OS &amp; architecture, or target a specific file. One script tag.</p>
       <div class="links">
         <a href="https://github.com/danielraffel/download-latest">GitHub</a>
         <a href="https://github.com/danielraffel/download-latest/tree/main/examples">Examples</a>
@@ -269,5 +269,33 @@
 
   <script src="../download-latest.js"></script>
   <script src="configurator.js"></script>
+  <script>
+    // Add copy buttons to all <pre> blocks that don't already have one
+    document.querySelectorAll('pre').forEach(function (pre) {
+      if (pre.querySelector('.copy-btn')) return;
+      var btn = document.createElement('button');
+      btn.className = 'copy-btn';
+      btn.title = 'Copy to clipboard';
+      btn.innerHTML =
+        '<svg class="icon-copy" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>' +
+        '<svg class="icon-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><polyline points="20 6 9 17 4 12"/></svg>';
+      btn.addEventListener('click', function () {
+        var text = pre.textContent;
+        navigator.clipboard.writeText(text).then(function () {
+          var ic = btn.querySelector('.icon-copy');
+          var ik = btn.querySelector('.icon-check');
+          ic.style.display = 'none';
+          ik.style.display = '';
+          btn.classList.add('copied');
+          setTimeout(function () {
+            ic.style.display = '';
+            ik.style.display = 'none';
+            btn.classList.remove('copied');
+          }, 2000);
+        });
+      });
+      pre.appendChild(btn);
+    });
+  </script>
 </body>
 </html>
