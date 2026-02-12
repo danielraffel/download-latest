@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Custom Button – download-latest</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0d1117; color: #e6edf3;
+      display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+    .btn { display: inline-block; padding: 14px 32px; background: #238636; color: #fff;
+      border-radius: 6px; font-size: 16px; font-weight: 600; text-decoration: none; }
+    .btn:hover { background: #2ea043; }
+    small { display: block; margin-top: 12px; color: #8b949e; }
+  </style>
+</head>
+<body>
+  <div style="text-align:center">
+    <h2>RustDesk</h2>
+    <a id="dl" class="btn" href="#">Loading…</a>
+    <small>Right-click the button to view all releases</small>
+    <script src="../download-latest.js" data-repo="rustdesk/rustdesk" data-target="#dl"></script>
+  </div>
+</body>
+</html>

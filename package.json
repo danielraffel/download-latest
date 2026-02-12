@@ -1,0 +1,14 @@
+{
+  "name": "download-latest",
+  "version": "1.0.0",
+  "description": "Add a download button for your latest GitHub release. Auto-detects OS and architecture.",
+  "main": "download-latest.js",
+  "files": ["download-latest.js", "download-latest.min.js"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/danielraffel/download-latest"
+  },
+  "keywords": ["github", "releases", "download", "button", "installer", "binary"],
+  "author": "Generous Corp",
+  "license": "MIT"
+}

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>download-latest — One-click GitHub release downloads</title>
+  <meta name="description" content="Add a download button for your latest GitHub release. Auto-detects OS and architecture. No build tools, no dependencies.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+
+    <header>
+      <h1>download-latest</h1>
+      <p>Add a "download latest" button to any site.<br>Auto-detects OS and architecture. One script tag.</p>
+      <div class="links">
+        <a href="https://github.com/danielraffel/download-latest">GitHub</a>
+        <a href="https://github.com/danielraffel/download-latest/tree/main/examples">Examples</a>
+        <a href="#configurator">Configurator</a>
+      </div>
+    </header>
+
+    <!-- Quick Start -->
+    <section>
+      <h2>Quick Start</h2>
+      <h3>One script tag</h3>
+      <pre><code>&lt;script
+  src="https://cdn.jsdelivr.net/gh/danielraffel/download-latest@1.0.0/download-latest.min.js"
+  data-repo="your-org/your-app"
+&gt;&lt;/script&gt;</code></pre>
+      <p>This inserts a download button that links to the right asset for each visitor's platform.</p>
+
+      <h3>Bind to your own button</h3>
+      <pre><code>&lt;a id="dl" href="#"&gt;Download&lt;/a&gt;
+&lt;script
+  src="https://cdn.jsdelivr.net/gh/danielraffel/download-latest@1.0.0/download-latest.min.js"
+  data-repo="your-org/your-app"
+  data-target="#dl"
+&gt;&lt;/script&gt;</code></pre>
+
+      <h3>Programmatic</h3>
+      <pre><code>&lt;script src="https://cdn.jsdelivr.net/gh/danielraffel/download-latest@1.0.0/download-latest.min.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+  const dl = new DownloadLatest({ repo: 'your-org/your-app' });
+  dl.get().then(r =&gt; console.log(r.url));
+&lt;/script&gt;</code></pre>
+    </section>
+
+    <!-- Configuration Reference -->
+    <section>
+      <h2>Configuration</h2>
+      <table>
+        <thead><tr><th>Attribute</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>data-repo</code></td><td><strong>Required.</strong> GitHub <code>owner/repo</code></td></tr>
+          <tr><td><code>data-target</code></td><td>CSS selector of existing element to bind</td></tr>
+          <tr><td><code>data-auto</code></td><td>Auto-redirect to download (no button)</td></tr>
+          <tr><td><code>data-fallback</code></td><td>Selector for element to fill with all asset links</td></tr>
+          <tr><td><code>data-version</code></td><td>Pin to a release tag (e.g., <code>v2.1.0</code>)</td></tr>
+          <tr><td><code>data-text</code></td><td>Button text. Use <code>{os}</code>, <code>{arch}</code>, <code>{version}</code></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Hosting -->
+    <section>
+      <h2>Hosting</h2>
+      <h3>jsDelivr CDN (recommended)</h3>
+      <pre><code>https://cdn.jsdelivr.net/gh/danielraffel/download-latest@1.0.0/download-latest.min.js</code></pre>
+      <p>Pin to a version (<code>@1.0.0</code>) or track latest (<code>@main</code>). Free, no setup required — jsDelivr serves any public GitHub repo automatically.</p>
+
+      <h3>Raw GitHub</h3>
+      <pre><code>https://raw.githubusercontent.com/danielraffel/download-latest/main/download-latest.min.js</code></pre>
+
+      <h3>Self-hosted</h3>
+      <p>Copy <code>download-latest.min.js</code> into your project. Use the configurator below to generate your snippet.</p>
+    </section>
+
+    <!-- Configurator -->
+    <section id="configurator">
+      <h2>Configurator</h2>
+      <div class="configurator">
+
+        <div class="field">
+          <label for="cfg-repo">GitHub Repo</label>
+          <div style="display:flex; gap:8px">
+            <input type="text" id="cfg-repo" placeholder="owner/repo" value="rustdesk/rustdesk">
+            <button id="cfg-test" style="padding:8px 16px; background:var(--accent); color:var(--bg); border:none; border-radius:var(--radius); cursor:pointer; font-size:14px; white-space:nowrap;">Test</button>
+          </div>
+          <div id="cfg-assets" class="assets-found"></div>
+        </div>
+
+        <div class="field">
+          <label>Mode</label>
+          <div class="radio-group">
+            <label><input type="radio" name="cfg-mode" value="button" checked> Button</label>
+            <label><input type="radio" name="cfg-mode" value="custom"> Bind existing element</label>
+            <label><input type="radio" name="cfg-mode" value="auto"> Auto-redirect</label>
+            <label><input type="radio" name="cfg-mode" value="url"> URL only</label>
+            <label><input type="radio" name="cfg-mode" value="fallback"> All assets list</label>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>Source</label>
+            <div class="radio-group">
+              <label><input type="radio" name="cfg-source" value="jsdelivr" checked> jsDelivr</label>
+              <label><input type="radio" name="cfg-source" value="raw"> Raw GitHub</label>
+              <label><input type="radio" name="cfg-source" value="self"> Self-hosted</label>
+            </div>
+          </div>
+          <div class="field">
+            <label>Version</label>
+            <div class="radio-group">
+              <label><input type="radio" name="cfg-version" value="latest" checked> Latest</label>
+              <label><input type="radio" name="cfg-version" value="pinned"> Pin to:</label>
+            </div>
+            <input type="text" id="cfg-version-tag" placeholder="v1.0.0" value="" disabled style="margin-top:6px; width:120px;">
+          </div>
+        </div>
+
+        <details class="collapsible" id="cfg-overrides">
+          <summary>Platform match overrides (optional)</summary>
+          <div class="fields">
+            <div class="field">
+              <label for="cfg-match-macos-arm64">macOS arm64</label>
+              <input type="text" id="cfg-match-macos-arm64" placeholder="e.g. aarch64\.dmg$">
+            </div>
+            <div class="field">
+              <label for="cfg-match-macos-x64">macOS x64</label>
+              <input type="text" id="cfg-match-macos-x64" placeholder="e.g. x86_64\.dmg$">
+            </div>
+            <div class="field">
+              <label for="cfg-match-windows-x64">Windows x64</label>
+              <input type="text" id="cfg-match-windows-x64" placeholder="e.g. x86_64\.exe$">
+            </div>
+            <div class="field">
+              <label for="cfg-match-linux-x64">Linux x64</label>
+              <input type="text" id="cfg-match-linux-x64" placeholder="e.g. amd64\.deb$">
+            </div>
+            <div class="field">
+              <label for="cfg-match-linux-arm64">Linux arm64</label>
+              <input type="text" id="cfg-match-linux-arm64" placeholder="e.g. aarch64\.deb$">
+            </div>
+          </div>
+        </details>
+
+        <div class="output-wrap">
+          <button id="cfg-copy" class="copy-btn">Copy</button>
+          <pre><code id="cfg-output-code"></code></pre>
+        </div>
+
+        <div class="preview" id="cfg-preview"></div>
+
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section>
+      <h2>How It Works</h2>
+      <ul>
+        <li>Detects visitor's OS and architecture via <code>navigator.userAgentData</code> with UA string fallback</li>
+        <li>Fetches latest release from GitHub API (cached 5 min in <code>sessionStorage</code>)</li>
+        <li>Matches assets against platform-specific regex patterns</li>
+        <li>If matched: links to the binary. If not: links to the releases page</li>
+        <li>Right-click / long-press the button to go to the releases page</li>
+        <li>Filters out <code>.sha256</code>, <code>.sig</code>, <code>.blockmap</code> automatically</li>
+      </ul>
+    </section>
+
+    <footer>
+      <a href="https://github.com/danielraffel/download-latest">MIT License</a> · <a href="https://github.com/danielraffel/download-latest">GitHub</a>
+    </footer>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/gh/danielraffel/download-latest@main/download-latest.min.js"></script>
+  <script src="configurator.js"></script>
+</body>
+</html>

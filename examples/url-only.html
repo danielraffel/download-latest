@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>URL Only – download-latest</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #111; color: #fff;
+      display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+    code { background: #222; padding: 2px 6px; border-radius: 4px; }
+    #result { margin-top: 16px; word-break: break-all; }
+    a { color: #58a6ff; }
+  </style>
+</head>
+<body>
+  <div style="max-width:600px">
+    <h2>Programmatic Usage</h2>
+    <p>Get just the download URL — no DOM manipulation.</p>
+    <div id="result">Detecting…</div>
+
+    <script src="../download-latest.js"></script>
+    <script>
+      (async () => {
+        const dl = new DownloadLatest({ repo: 'rustdesk/rustdesk' });
+        const result = await dl.get();
+        const el = document.getElementById('result');
+        el.innerHTML = `
+          <p><strong>OS:</strong> ${result.os} (${result.arch})</p>
+          <p><strong>Version:</strong> ${result.version}</p>
+          <p><strong>Asset:</strong> ${result.asset || 'none matched'}</p>
+          <p><strong>URL:</strong> <a href="${result.url}">${result.url}</a></p>
+        `;
+      })();
+    </script>
+  </div>
+</body>
+</html>
