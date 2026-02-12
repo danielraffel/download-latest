@@ -103,7 +103,6 @@
             <label class="mode-option"><input type="radio" name="cfg-mode" value="auto"> <span><strong>Auto-redirect</strong> — Immediately starts the download (no button shown)</span></label>
             <label class="mode-option"><input type="radio" name="cfg-mode" value="url"> <span><strong>URL only</strong> — Returns the detected download URL for use in your own code</span></label>
             <label class="mode-option"><input type="radio" name="cfg-mode" value="fallback"> <span><strong>All assets list</strong> — Shows every downloadable file from the release</span></label>
-            <label class="mode-option"><input type="radio" name="cfg-mode" value="selector"> <span><strong>Platform selector</strong> — Dropdown menu grouped by OS, auto-detects platform</span></label>
           </div>
         </div>
 
@@ -161,6 +160,13 @@
               </label>
               <span class="field-hint">When enabled, right-click / long-press on the button opens the GitHub releases page instead of the browser context menu</span>
             </div>
+            <div class="field" id="cfg-adv-selector-field">
+              <label class="checkbox-label">
+                <input type="checkbox" id="cfg-adv-selector">
+                Show platform selector
+              </label>
+              <span class="field-hint">Adds a dropdown next to the button so visitors can pick a different platform</span>
+            </div>
           </div>
         </details>
 
@@ -184,26 +190,31 @@
         </div>
 
         <details class="collapsible" id="cfg-overrides">
-          <summary>Platform match overrides (optional)</summary>
+          <summary>Platforms (optional)</summary>
           <div class="fields">
-            <div class="field">
-              <label for="cfg-match-macos-arm64">macOS arm64</label>
+            <span class="field-hint" style="margin-bottom:12px">Uncheck a platform to exclude it. Add a regex pattern to override the default asset matching.</span>
+            <div class="field platform-field">
+              <label class="checkbox-label"><input type="checkbox" class="cfg-platform-toggle" data-platform="macos-arm64" checked> macOS arm64</label>
               <input type="text" id="cfg-match-macos-arm64" placeholder="e.g. aarch64\.dmg$">
             </div>
-            <div class="field">
-              <label for="cfg-match-macos-x64">macOS x64</label>
+            <div class="field platform-field">
+              <label class="checkbox-label"><input type="checkbox" class="cfg-platform-toggle" data-platform="macos-x64" checked> macOS x64</label>
               <input type="text" id="cfg-match-macos-x64" placeholder="e.g. x86_64\.dmg$">
             </div>
-            <div class="field">
-              <label for="cfg-match-windows-x64">Windows x64</label>
+            <div class="field platform-field">
+              <label class="checkbox-label"><input type="checkbox" class="cfg-platform-toggle" data-platform="windows-x64" checked> Windows x64</label>
               <input type="text" id="cfg-match-windows-x64" placeholder="e.g. x86_64\.exe$">
             </div>
-            <div class="field">
-              <label for="cfg-match-linux-x64">Linux x64</label>
+            <div class="field platform-field">
+              <label class="checkbox-label"><input type="checkbox" class="cfg-platform-toggle" data-platform="windows-arm64" checked> Windows arm64</label>
+              <input type="text" id="cfg-match-windows-arm64" placeholder="e.g. arm64\.exe$">
+            </div>
+            <div class="field platform-field">
+              <label class="checkbox-label"><input type="checkbox" class="cfg-platform-toggle" data-platform="linux-x64" checked> Linux x64</label>
               <input type="text" id="cfg-match-linux-x64" placeholder="e.g. amd64\.deb$">
             </div>
-            <div class="field">
-              <label for="cfg-match-linux-arm64">Linux arm64</label>
+            <div class="field platform-field">
+              <label class="checkbox-label"><input type="checkbox" class="cfg-platform-toggle" data-platform="linux-arm64" checked> Linux arm64</label>
               <input type="text" id="cfg-match-linux-arm64" placeholder="e.g. aarch64\.deb$">
             </div>
           </div>

@@ -27,6 +27,7 @@
   var advNoMatchTextInput = document.getElementById('cfg-adv-nomatch-text');
   var advNoMatchUrlInput = document.getElementById('cfg-adv-nomatch-url');
   var advContextMenuInput = document.getElementById('cfg-adv-context-menu');
+  var advSelectorInput = document.getElementById('cfg-adv-selector');
 
   var advTextFieldEl = document.getElementById('cfg-adv-text-field');
   var advStyleFieldsEl = document.getElementById('cfg-adv-style-fields');
@@ -34,14 +35,18 @@
   var advNoMatchFieldEl = document.getElementById('cfg-adv-nomatch-field');
   var advNoMatchUrlFieldEl = document.getElementById('cfg-adv-nomatch-url-field');
   var advContextMenuFieldEl = document.getElementById('cfg-adv-context-menu-field');
+  var advSelectorFieldEl = document.getElementById('cfg-adv-selector-field');
 
-  var overrideFields = {
-    'macos-arm64': document.getElementById('cfg-match-macos-arm64'),
-    'macos-x64': document.getElementById('cfg-match-macos-x64'),
-    'windows-x64': document.getElementById('cfg-match-windows-x64'),
-    'linux-x64': document.getElementById('cfg-match-linux-x64'),
-    'linux-arm64': document.getElementById('cfg-match-linux-arm64')
-  };
+  // Platform overrides with checkboxes
+  var ALL_PLATFORMS = ['macos-arm64', 'macos-x64', 'windows-x64', 'windows-arm64', 'linux-x64', 'linux-arm64'];
+
+  var overrideFields = {};
+  var platformToggles = {};
+  ALL_PLATFORMS.forEach(function (key) {
+    overrideFields[key] = document.getElementById('cfg-match-' + key);
+    var toggle = document.querySelector('.cfg-platform-toggle[data-platform="' + key + '"]');
+    if (toggle) platformToggles[key] = toggle;
+  });
 
   var lastRelease = null;
 
@@ -54,14 +59,39 @@
     var m = {};
     var hasAny = false;
     for (var key in overrideFields) {
+      if (!overrideFields[key]) continue;
       var v = overrideFields[key].value.trim();
       if (v) { m[key] = v; hasAny = true; }
     }
     return hasAny ? m : null;
   }
 
+  // Returns list of platform keys that are unchecked (excluded)
+  function getExcludedPlatforms() {
+    var excluded = [];
+    for (var key in platformToggles) {
+      if (!platformToggles[key].checked) excluded.push(key);
+    }
+    return excluded;
+  }
+
   function escapeHtml(s) {
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  // --- Platform toggle visual state ---
+
+  function updatePlatformFieldStates() {
+    for (var key in platformToggles) {
+      var field = platformToggles[key].closest('.platform-field');
+      if (field) {
+        if (platformToggles[key].checked) {
+          field.classList.remove('disabled');
+        } else {
+          field.classList.add('disabled');
+        }
+      }
+    }
   }
 
   // --- Advanced section visibility ---
@@ -76,8 +106,10 @@
     var hasNoMatch = (mode === 'button' || mode === 'custom');
     // Modes that can use context menu: button, custom
     var hasContextMenu = (mode === 'button' || mode === 'custom');
+    // Modes that can show platform selector: button, custom
+    var hasSelector = (mode === 'button' || mode === 'custom');
     // Modes with nothing relevant in Advanced
-    var isEmpty = !hasText && !hasButtonStyle && !hasNoMatch && !hasContextMenu;
+    var isEmpty = !hasText && !hasButtonStyle && !hasNoMatch && !hasContextMenu && !hasSelector;
 
     advTextFieldEl.style.display = hasText ? '' : 'none';
     advStyleFieldsEl.style.display = hasButtonStyle ? '' : 'none';
@@ -85,6 +117,7 @@
     advNoMatchFieldEl.style.display = hasNoMatch ? '' : 'none';
     advNoMatchUrlFieldEl.style.display = hasNoMatch ? '' : 'none';
     advContextMenuFieldEl.style.display = hasContextMenu ? '' : 'none';
+    advSelectorFieldEl.style.display = hasSelector ? '' : 'none';
 
     if (isEmpty) {
       advancedEl.setAttribute('data-empty', '');
@@ -172,7 +205,8 @@
     var noMatchUrl = advNoMatchUrlInput.value.trim();
     var theme = getVal('cfg-theme');
     var contextMenu = advContextMenuInput.checked;
-    return { text: text, bg: bg, fg: fg, radius: radius, noMatchText: noMatchText, noMatchUrl: noMatchUrl, theme: theme, contextMenu: contextMenu };
+    var showSelector = advSelectorInput.checked;
+    return { text: text, bg: bg, fg: fg, radius: radius, noMatchText: noMatchText, noMatchUrl: noMatchUrl, theme: theme, contextMenu: contextMenu, showSelector: showSelector };
   }
 
   function buildStyleAttr(adv) {
@@ -192,6 +226,7 @@
     var version = getVal('cfg-version');
     var tag = versionTag.value.trim();
     var overrides = getOverrides();
+    var excluded = getExcludedPlatforms();
     var adv = getAdvancedConfig();
 
     // Build src URL
@@ -210,16 +245,16 @@
     var snippet;
 
     // Determine if we need programmatic mode
-    var needsProgrammatic = overrides || mode === 'url' || mode === 'selector' ||
+    var needsProgrammatic = overrides || excluded.length > 0 || mode === 'url' ||
       (mode === 'button' && (adv.bg || adv.fg || adv.radius)) ||
-      adv.noMatchText || adv.noMatchUrl || adv.contextMenu;
+      adv.noMatchText || adv.noMatchUrl || adv.contextMenu || adv.showSelector;
 
     if (needsProgrammatic) {
       var configLines = ['  repo: \'' + repo + '\''];
       if (version === 'pinned' && tag) {
         configLines.push('  version: \'' + tag + '\'');
       }
-      if (adv.text && mode !== 'selector') {
+      if (adv.text) {
         configLines.push('  text: \'' + adv.text.replace(/'/g, "\\'") + '\'');
       }
       if (adv.noMatchText) {
@@ -239,6 +274,12 @@
         configLines.push('  match: {\n' + matchLines.join(',\n') + '\n  }');
       }
 
+      // Build the selector options if selector is enabled with exclusions
+      var selectorOptsStr = '';
+      if (adv.showSelector && excluded.length > 0) {
+        selectorOptsStr = '{ exclude: [\'' + excluded.join('\', \'') + '\'] }';
+      }
+
       if (mode === 'url') {
         snippet = '<script src="' + src + '"><\/script>\n<script>\n' +
           '  const dl = new DownloadLatest({\n' + configLines.join(',\n') + '\n  });\n' +
@@ -251,10 +292,6 @@
         snippet = '<div id="downloads"></div>\n<script src="' + src + '"><\/script>\n<script>\n' +
           '  const dl = new DownloadLatest({\n' + configLines.join(',\n') + '\n  });\n' +
           '  dl.attachFallback(\'#downloads\');\n<\/script>';
-      } else if (mode === 'selector') {
-        snippet = '<div id="download-selector"></div>\n<script src="' + src + '"><\/script>\n<script>\n' +
-          '  const dl = new DownloadLatest({\n' + configLines.join(',\n') + '\n  });\n' +
-          '  dl.attachSelector(\'#download-selector\');\n<\/script>';
       } else {
         // button or custom with programmatic
         var styleStr = buildStyleAttr(adv);
@@ -262,9 +299,14 @@
         if (styleStr) {
           elTag = '<a id="dl" href="#" style="' + styleStr + '">Download</a>';
         }
+        var attachCalls = '  dl.attach(\'#dl\');\n';
+        if (adv.showSelector) {
+          elTag += '\n<div id="dl-selector"></div>';
+          attachCalls += '  dl.attachSelector(\'#dl-selector\'' + (selectorOptsStr ? ', ' + selectorOptsStr : '') + ');\n';
+        }
         snippet = elTag + '\n<script src="' + src + '"><\/script>\n<script>\n' +
           '  const dl = new DownloadLatest({\n' + configLines.join(',\n') + '\n  });\n' +
-          '  dl.attach(\'#dl\');\n<\/script>';
+          attachCalls + '<\/script>';
       }
     } else {
       // Simple data-attribute approach
@@ -281,22 +323,20 @@
       if (mode === 'auto') attrs.push('  data-auto');
       if (mode === 'fallback') attrs.push('  data-fallback="#downloads"');
       if (mode === 'custom') attrs.push('  data-target="#your-button"');
-      if (mode === 'selector') attrs.push('  data-selector="#download-selector"');
 
       snippet = '';
       if (mode === 'fallback') snippet += '<div id="downloads"></div>\n';
       if (mode === 'custom') snippet += '<a id="your-button" href="#">Download</a>\n';
-      if (mode === 'selector') snippet += '<div id="download-selector"></div>\n';
       snippet += '<script\n' + attrs.join('\n') + '\n><\/script>';
     }
 
     outputCode.textContent = snippet;
 
     // Update preview
-    updatePreview(repo, mode, adv);
+    updatePreview(repo, mode, adv, excluded);
   }
 
-  function updatePreview(repo, mode, adv) {
+  function updatePreview(repo, mode, adv, excluded) {
     previewEl.innerHTML = '';
     if (!repo) return;
 
@@ -308,13 +348,6 @@
       previewEl.appendChild(div);
       var dl = new DownloadLatest({ repo: repo });
       dl.attachFallback(div);
-    } else if (mode === 'selector') {
-      var selectorDiv = document.createElement('div');
-      selectorDiv.style.textAlign = 'left';
-      selectorDiv.textContent = 'Loading assets\u2026';
-      previewEl.appendChild(selectorDiv);
-      var dlSel = new DownloadLatest({ repo: repo });
-      dlSel.attachSelector(selectorDiv);
     } else if (mode === 'auto' || mode === 'url') {
       var info = document.createElement('div');
       info.style.color = 'var(--text-muted)';
@@ -334,6 +367,7 @@
       });
       previewEl.appendChild(info);
     } else {
+      // button or custom mode
       var btn = document.createElement('a');
       btn.className = 'dl-latest-btn';
       btn.href = '#';
@@ -343,12 +377,23 @@
       if (adv && adv.fg) btn.style.color = adv.fg;
       if (adv && adv.radius) btn.style.borderRadius = adv.radius;
       previewEl.appendChild(btn);
+
       var cfg = { repo: repo };
       if (adv && adv.text) cfg.text = adv.text;
       if (adv && adv.noMatchText) cfg.noMatchText = adv.noMatchText;
       if (adv && adv.noMatchUrl) cfg.noMatchUrl = adv.noMatchUrl;
       var dl3 = new DownloadLatest(cfg);
       dl3.attach(btn);
+
+      // Show platform selector in preview if checked
+      if (adv && adv.showSelector) {
+        var selectorDiv = document.createElement('div');
+        selectorDiv.style.marginTop = '12px';
+        previewEl.appendChild(selectorDiv);
+        var selectorOpts = {};
+        if (excluded && excluded.length > 0) selectorOpts.exclude = excluded;
+        dl3.attachSelector(selectorDiv, selectorOpts);
+      }
     }
   }
 
@@ -361,6 +406,7 @@
   advNoMatchTextInput.addEventListener('input', generate);
   advNoMatchUrlInput.addEventListener('input', generate);
   advContextMenuInput.addEventListener('change', generate);
+  advSelectorInput.addEventListener('change', generate);
   modeRadios.forEach(function (r) { r.addEventListener('change', function () {
     updateAdvancedVisibility();
     generate();
@@ -374,7 +420,13 @@
     applyTheme(this.value);
   }); });
   for (var key in overrideFields) {
-    overrideFields[key].addEventListener('input', generate);
+    if (overrideFields[key]) overrideFields[key].addEventListener('input', generate);
+  }
+  for (var pk in platformToggles) {
+    platformToggles[pk].addEventListener('change', function () {
+      updatePlatformFieldStates();
+      generate();
+    });
   }
 
   // Copy button with icon toggle
@@ -395,5 +447,6 @@
 
   // Initial state
   updateAdvancedVisibility();
+  updatePlatformFieldStates();
   generate();
 })();
