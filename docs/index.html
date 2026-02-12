@@ -58,6 +58,11 @@
           <tr><td><code>data-fallback</code></td><td>Selector for element to fill with all asset links</td></tr>
           <tr><td><code>data-version</code></td><td>Pin to a release tag (e.g., <code>v2.1.0</code>)</td></tr>
           <tr><td><code>data-text</code></td><td>Button text. Use <code>{os}</code>, <code>{arch}</code>, <code>{version}</code></td></tr>
+          <tr><td><code>data-no-match-text</code></td><td>Text shown when visitor's platform has no match. Default: <code>View all downloads</code></td></tr>
+          <tr><td><code>data-no-match-url</code></td><td>URL when no match (default: releases page). E.g., a waitlist URL</td></tr>
+          <tr><td><code>data-selector</code></td><td>CSS selector for element to render platform dropdown into</td></tr>
+          <tr><td><code>data-theme</code></td><td>Button theme: <code>auto</code> (follows system), <code>dark</code>, or omit for light</td></tr>
+          <tr><td><code>data-context-menu</code></td><td>Enable right-click to open releases page (disabled by default)</td></tr>
         </tbody>
       </table>
     </section>
@@ -92,12 +97,13 @@
 
         <div class="field">
           <label>Mode</label>
-          <div class="radio-group">
-            <label><input type="radio" name="cfg-mode" value="button" checked> Button</label>
-            <label><input type="radio" name="cfg-mode" value="custom"> Bind existing element</label>
-            <label><input type="radio" name="cfg-mode" value="auto"> Auto-redirect</label>
-            <label><input type="radio" name="cfg-mode" value="url"> URL only</label>
-            <label><input type="radio" name="cfg-mode" value="fallback"> All assets list</label>
+          <div class="mode-options">
+            <label class="mode-option"><input type="radio" name="cfg-mode" value="button" checked> <span><strong>Button</strong> — Creates a styled download button</span></label>
+            <label class="mode-option"><input type="radio" name="cfg-mode" value="custom"> <span><strong>Bind existing element</strong> — Attaches to your own button/link and sets its href + text</span></label>
+            <label class="mode-option"><input type="radio" name="cfg-mode" value="auto"> <span><strong>Auto-redirect</strong> — Immediately starts the download (no button shown)</span></label>
+            <label class="mode-option"><input type="radio" name="cfg-mode" value="url"> <span><strong>URL only</strong> — Returns the detected download URL for use in your own code</span></label>
+            <label class="mode-option"><input type="radio" name="cfg-mode" value="fallback"> <span><strong>All assets list</strong> — Shows every downloadable file from the release</span></label>
+            <label class="mode-option"><input type="radio" name="cfg-mode" value="selector"> <span><strong>Platform selector</strong> — Dropdown menu grouped by OS, auto-detects platform</span></label>
           </div>
         </div>
 
@@ -130,12 +136,30 @@
               </div>
             </div>
             <div class="field" id="cfg-adv-theme-field">
-              <label>Preset</label>
+              <label>Theme <a href="https://github.com/danielraffel/download-latest#theming-lightdark-mode" target="_blank" rel="noopener" title="Theming docs" class="info-link"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></a></label>
               <div class="radio-group">
-                <label><input type="radio" name="cfg-theme" value=""> None</label>
-                <label><input type="radio" name="cfg-theme" value="light"> Light</label>
+                <label><input type="radio" name="cfg-theme" value="" checked> Light (default)</label>
+                <label><input type="radio" name="cfg-theme" value="auto"> Auto (follows system)</label>
                 <label><input type="radio" name="cfg-theme" value="dark"> Dark</label>
               </div>
+              <span class="field-hint">Auto adapts to the visitor's light/dark preference via <code>prefers-color-scheme</code></span>
+            </div>
+            <div class="field" id="cfg-adv-nomatch-field">
+              <label for="cfg-adv-nomatch-text">No-match text</label>
+              <input type="text" id="cfg-adv-nomatch-text" placeholder="View all downloads" value="">
+              <span class="field-hint">Shown when visitor's platform has no matching binary</span>
+            </div>
+            <div class="field" id="cfg-adv-nomatch-url-field">
+              <label for="cfg-adv-nomatch-url">No-match URL</label>
+              <input type="text" id="cfg-adv-nomatch-url" placeholder="(defaults to releases page)" value="">
+              <span class="field-hint">Where to link when no binary matches (e.g., a waitlist page)</span>
+            </div>
+            <div class="field" id="cfg-adv-context-menu-field">
+              <label class="checkbox-label">
+                <input type="checkbox" id="cfg-adv-context-menu">
+                Right-click opens releases page
+              </label>
+              <span class="field-hint">When enabled, right-click / long-press on the button opens the GitHub releases page instead of the browser context menu</span>
             </div>
           </div>
         </details>
@@ -205,9 +229,9 @@
         <li>Detects visitor's OS and architecture via <code>navigator.userAgentData</code> with UA string fallback</li>
         <li>Fetches latest release from GitHub API (cached 5 min in <code>sessionStorage</code>)</li>
         <li>Matches assets against platform-specific regex patterns</li>
-        <li>If matched: links to the binary. If not: links to the releases page</li>
-        <li>Right-click / long-press the button to go to the releases page</li>
+        <li>If matched: links to the binary. If not: shows configurable fallback text</li>
         <li>Filters out <code>.sha256</code>, <code>.sig</code>, <code>.blockmap</code> automatically</li>
+        <li>Button uses CSS custom properties (<code>--dl-bg</code>, <code>--dl-color</code>, <code>--dl-radius</code>) for easy theming</li>
       </ul>
     </section>
 

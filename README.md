@@ -62,17 +62,25 @@ This inserts a download button that auto-detects the visitor's platform and link
 | `data-target` | CSS selector of an existing element to bind |
 | `data-auto` | Auto-redirect to the download (no button) |
 | `data-fallback` | CSS selector of an element to populate with all asset links |
+| `data-selector` | CSS selector of an element to render a platform dropdown into |
 | `data-version` | Pin to a specific release tag (e.g., `v2.1.0`) |
 | `data-text` | Button text template. Use `{os}`, `{arch}`, `{version}` as placeholders. Default: `"Download for {os}"` |
+| `data-no-match-text` | Text shown when visitor's platform has no matching binary. Default: `"View all downloads"` |
+| `data-no-match-url` | URL to link to when no binary matches (default: releases page) |
+| `data-theme` | Button theme: `auto` (follows system light/dark), `dark`, or omit for light default |
+| `data-context-menu` | Enable right-click / long-press to open the releases page (disabled by default) |
 
 ### Programmatic config
 
 ```js
 new DownloadLatest({
-  repo: 'owner/repo',       // required
-  version: 'v2.1.0',        // optional: pin to a tag
-  text: 'Get {os} build',   // optional: button text
-  match: {                   // optional: override asset matching
+  repo: 'owner/repo',              // required
+  version: 'v2.1.0',               // optional: pin to a tag
+  text: 'Get {os} build',          // optional: button text
+  noMatchText: 'Not available',    // optional: text when no match found
+  noMatchUrl: 'https://...',       // optional: URL when no match (default: releases page)
+  contextMenu: true,               // optional: right-click opens releases page (default: false)
+  match: {                          // optional: override asset matching
     'macos-arm64': /\.dmg$/i,
     'linux-x64':  [/\.deb$/i, /\.AppImage$/i],  // array = priority order
   }
@@ -110,6 +118,30 @@ Each value can be a single regex or an array (tried in order, first match wins).
 | Linux x64 | `x86_64.AppImage`, `amd64.deb`, `x86_64.deb` |
 | Linux arm64 | `aarch64.AppImage`, `arm64.deb`, `aarch64.deb` |
 
+### Theming (light/dark mode)
+
+The auto-created button uses CSS custom properties, so it works with any site theme:
+
+- **Default** — light background, dark text (no `data-theme` needed)
+- **`data-theme="auto"`** — follows the visitor's system preference via `prefers-color-scheme`
+- **`data-theme="dark"`** — dark background, light text
+
+Override the button's look from your own CSS:
+
+```css
+:root {
+  --dl-bg: #007bff;
+  --dl-color: #fff;
+  --dl-radius: 4px;
+}
+```
+
+When using "Bind existing element" mode, the button inherits your site's styling naturally — the library only sets `textContent` and `href`, not visual styles.
+
+### Unsupported platforms
+
+When no binary matches the visitor's platform (e.g., a Windows user visiting a macOS-only download page), the button shows `noMatchText` (default: "View all downloads") and links to either `noMatchUrl` or the releases page. The element gets a `data-dl-matched="false"` attribute that you can use for CSS styling.
+
 ## API
 
 ### `dl.get()` → `Promise<Result>`
@@ -129,11 +161,25 @@ Each value can be a single regex or an array (tried in order, first match wins).
 
 ### `dl.attach(selectorOrElement)`
 
-Binds a download link/button to the matched asset. Sets `href`, updates text, adds `data-dl-os` and `data-dl-arch` attributes. Right-click opens the releases page.
+Binds a download link/button to the matched asset. Sets `href`, updates text, adds `data-dl-os`, `data-dl-arch`, and `data-dl-matched` attributes. Right-click opens the releases page.
+
+When no match is found, shows `noMatchText` and links to `noMatchUrl` (or the releases page).
 
 ### `dl.attachFallback(selectorOrElement)`
 
 Populates an element with links to all assets (with file sizes).
+
+### `dl.attachSelector(selectorOrElement, options?)`
+
+Renders a platform selector dropdown grouped by OS. Auto-detects the visitor's platform and pre-selects the matching asset.
+
+```js
+dl.attachSelector('#download-area', {
+  include: ['macos-arm64', 'macos-x64', 'linux-x64'],  // only these platforms
+  exclude: ['windows-arm64'],                            // hide these platforms
+  buttonText: 'Download',                                // download button text
+});
+```
 
 ## Hosting
 
@@ -162,7 +208,7 @@ Copy `download-latest.min.js` into your project. Use the [configurator](https://
 1. Detects visitor's OS and architecture via `navigator.userAgentData` (Chromium) with fallback to user-agent string parsing
 2. Fetches latest release from the GitHub API (cached in `sessionStorage` for 5 minutes to stay within rate limits)
 3. Matches assets against platform-specific regex patterns
-4. If matched: links directly to the binary. If not: links to the releases page
+4. If matched: links directly to the binary. If not: shows configurable fallback text and links to releases page or custom URL
 5. Filters out `.sha256`, `.sig`, `.blockmap`, and other non-binary files automatically
 
 ## Examples
@@ -174,6 +220,7 @@ See the [`examples/`](examples/) directory:
 - [url-only.html](examples/url-only.html) — get the URL programmatically
 - [fallback-list.html](examples/fallback-list.html) — show all available downloads
 - [auto-redirect.html](examples/auto-redirect.html) — auto-start download on page load
+- [platform-selector.html](examples/platform-selector.html) — dropdown menu grouped by OS
 
 ## License
 

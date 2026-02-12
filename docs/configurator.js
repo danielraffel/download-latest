@@ -24,10 +24,16 @@
   var advFgPicker = document.getElementById('cfg-adv-fg-picker');
   var advRadiusInput = document.getElementById('cfg-adv-radius');
   var themeRadios = document.querySelectorAll('[name="cfg-theme"]');
+  var advNoMatchTextInput = document.getElementById('cfg-adv-nomatch-text');
+  var advNoMatchUrlInput = document.getElementById('cfg-adv-nomatch-url');
+  var advContextMenuInput = document.getElementById('cfg-adv-context-menu');
 
   var advTextFieldEl = document.getElementById('cfg-adv-text-field');
   var advStyleFieldsEl = document.getElementById('cfg-adv-style-fields');
   var advThemeFieldEl = document.getElementById('cfg-adv-theme-field');
+  var advNoMatchFieldEl = document.getElementById('cfg-adv-nomatch-field');
+  var advNoMatchUrlFieldEl = document.getElementById('cfg-adv-nomatch-url-field');
+  var advContextMenuFieldEl = document.getElementById('cfg-adv-context-menu-field');
 
   var overrideFields = {
     'macos-arm64': document.getElementById('cfg-match-macos-arm64'),
@@ -62,16 +68,23 @@
 
   function updateAdvancedVisibility() {
     var mode = getVal('cfg-mode');
-    // Modes that show button styling: button, custom
+    // Modes that show button styling: button only (user styles their own element in custom mode)
     var hasButtonStyle = (mode === 'button');
-    // Modes that show text customization: button, custom
+    // Modes that show text customization: button, custom (lets user put OS-detected text on their own element)
     var hasText = (mode === 'button' || mode === 'custom');
-    // Modes with nothing relevant
-    var isEmpty = !hasText && !hasButtonStyle;
+    // Modes that show no-match options: button, custom (these show a button that may say wrong thing)
+    var hasNoMatch = (mode === 'button' || mode === 'custom');
+    // Modes that can use context menu: button, custom
+    var hasContextMenu = (mode === 'button' || mode === 'custom');
+    // Modes with nothing relevant in Advanced
+    var isEmpty = !hasText && !hasButtonStyle && !hasNoMatch && !hasContextMenu;
 
     advTextFieldEl.style.display = hasText ? '' : 'none';
     advStyleFieldsEl.style.display = hasButtonStyle ? '' : 'none';
     advThemeFieldEl.style.display = hasButtonStyle ? '' : 'none';
+    advNoMatchFieldEl.style.display = hasNoMatch ? '' : 'none';
+    advNoMatchUrlFieldEl.style.display = hasNoMatch ? '' : 'none';
+    advContextMenuFieldEl.style.display = hasContextMenu ? '' : 'none';
 
     if (isEmpty) {
       advancedEl.setAttribute('data-empty', '');
@@ -84,19 +97,17 @@
   // --- Theme presets ---
 
   function applyTheme(theme) {
-    if (theme === 'light') {
-      advBgInput.value = '#ffffff';
-      advFgInput.value = '#000000';
+    if (theme === 'light' || theme === '') {
+      advBgInput.value = '';
+      advFgInput.value = '';
       advBgPicker.value = '#ffffff';
       advFgPicker.value = '#000000';
     } else if (theme === 'dark') {
-      advBgInput.value = '#24292f';
-      advFgInput.value = '#ffffff';
+      advBgInput.value = '';
+      advFgInput.value = '';
       advBgPicker.value = '#24292f';
       advFgPicker.value = '#ffffff';
-    }
-    // 'none' clears
-    if (!theme) {
+    } else if (theme === 'auto') {
       advBgInput.value = '';
       advFgInput.value = '';
       advBgPicker.value = '#ffffff';
@@ -157,7 +168,11 @@
     var bg = advBgInput.value.trim();
     var fg = advFgInput.value.trim();
     var radius = advRadiusInput.value.trim();
-    return { text: text, bg: bg, fg: fg, radius: radius };
+    var noMatchText = advNoMatchTextInput.value.trim();
+    var noMatchUrl = advNoMatchUrlInput.value.trim();
+    var theme = getVal('cfg-theme');
+    var contextMenu = advContextMenuInput.checked;
+    return { text: text, bg: bg, fg: fg, radius: radius, noMatchText: noMatchText, noMatchUrl: noMatchUrl, theme: theme, contextMenu: contextMenu };
   }
 
   function buildStyleAttr(adv) {
@@ -195,15 +210,26 @@
     var snippet;
 
     // Determine if we need programmatic mode
-    var needsProgrammatic = overrides || mode === 'url' || (mode === 'button' && (adv.bg || adv.fg || adv.radius));
+    var needsProgrammatic = overrides || mode === 'url' || mode === 'selector' ||
+      (mode === 'button' && (adv.bg || adv.fg || adv.radius)) ||
+      adv.noMatchText || adv.noMatchUrl || adv.contextMenu;
 
     if (needsProgrammatic) {
       var configLines = ['  repo: \'' + repo + '\''];
       if (version === 'pinned' && tag) {
         configLines.push('  version: \'' + tag + '\'');
       }
-      if (adv.text) {
+      if (adv.text && mode !== 'selector') {
         configLines.push('  text: \'' + adv.text.replace(/'/g, "\\'") + '\'');
+      }
+      if (adv.noMatchText) {
+        configLines.push('  noMatchText: \'' + adv.noMatchText.replace(/'/g, "\\'") + '\'');
+      }
+      if (adv.noMatchUrl) {
+        configLines.push('  noMatchUrl: \'' + adv.noMatchUrl.replace(/'/g, "\\'") + '\'');
+      }
+      if (adv.contextMenu) {
+        configLines.push('  contextMenu: true');
       }
       if (overrides) {
         var matchLines = [];
@@ -225,6 +251,10 @@
         snippet = '<div id="downloads"></div>\n<script src="' + src + '"><\/script>\n<script>\n' +
           '  const dl = new DownloadLatest({\n' + configLines.join(',\n') + '\n  });\n' +
           '  dl.attachFallback(\'#downloads\');\n<\/script>';
+      } else if (mode === 'selector') {
+        snippet = '<div id="download-selector"></div>\n<script src="' + src + '"><\/script>\n<script>\n' +
+          '  const dl = new DownloadLatest({\n' + configLines.join(',\n') + '\n  });\n' +
+          '  dl.attachSelector(\'#download-selector\');\n<\/script>';
       } else {
         // button or custom with programmatic
         var styleStr = buildStyleAttr(adv);
@@ -245,13 +275,18 @@
       if (adv.text) {
         attrs.push('  data-text="' + adv.text.replace(/"/g, '&quot;') + '"');
       }
+      if (adv.theme && mode === 'button') {
+        attrs.push('  data-theme="' + adv.theme + '"');
+      }
       if (mode === 'auto') attrs.push('  data-auto');
       if (mode === 'fallback') attrs.push('  data-fallback="#downloads"');
       if (mode === 'custom') attrs.push('  data-target="#your-button"');
+      if (mode === 'selector') attrs.push('  data-selector="#download-selector"');
 
       snippet = '';
       if (mode === 'fallback') snippet += '<div id="downloads"></div>\n';
       if (mode === 'custom') snippet += '<a id="your-button" href="#">Download</a>\n';
+      if (mode === 'selector') snippet += '<div id="download-selector"></div>\n';
       snippet += '<script\n' + attrs.join('\n') + '\n><\/script>';
     }
 
@@ -273,6 +308,13 @@
       previewEl.appendChild(div);
       var dl = new DownloadLatest({ repo: repo });
       dl.attachFallback(div);
+    } else if (mode === 'selector') {
+      var selectorDiv = document.createElement('div');
+      selectorDiv.style.textAlign = 'left';
+      selectorDiv.textContent = 'Loading assets\u2026';
+      previewEl.appendChild(selectorDiv);
+      var dlSel = new DownloadLatest({ repo: repo });
+      dlSel.attachSelector(selectorDiv);
     } else if (mode === 'auto' || mode === 'url') {
       var info = document.createElement('div');
       info.style.color = 'var(--text-muted)';
@@ -303,6 +345,8 @@
       previewEl.appendChild(btn);
       var cfg = { repo: repo };
       if (adv && adv.text) cfg.text = adv.text;
+      if (adv && adv.noMatchText) cfg.noMatchText = adv.noMatchText;
+      if (adv && adv.noMatchUrl) cfg.noMatchUrl = adv.noMatchUrl;
       var dl3 = new DownloadLatest(cfg);
       dl3.attach(btn);
     }
@@ -314,6 +358,9 @@
   versionTag.addEventListener('input', generate);
   advTextInput.addEventListener('input', generate);
   advRadiusInput.addEventListener('input', generate);
+  advNoMatchTextInput.addEventListener('input', generate);
+  advNoMatchUrlInput.addEventListener('input', generate);
+  advContextMenuInput.addEventListener('change', generate);
   modeRadios.forEach(function (r) { r.addEventListener('change', function () {
     updateAdvancedVisibility();
     generate();

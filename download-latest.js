@@ -142,6 +142,9 @@
     this.version = config.version || null;
     this.match = config.match || null;
     this.text = config.text || 'Download for {os}';
+    this.noMatchText = config.noMatchText || 'View all downloads';
+    this.noMatchUrl = config.noMatchUrl || null; // null = use releases page
+    this.contextMenu = !!config.contextMenu;     // opt-in: right-click opens releases page
     this._releasesUrl = 'https://github.com/' + this.repo + '/releases' + (this.version ? '/tag/' + this.version : '/latest');
     this._promise = null;
   }
@@ -190,31 +193,47 @@
 
     var self = this;
     this.get().then(function (result) {
+      var targetUrl = result.matched
+        ? result.url
+        : (self.noMatchUrl || result.releasesUrl);
+
       if (el.tagName === 'A') {
-        el.href = result.url;
+        el.href = targetUrl;
       } else {
         el.style.cursor = 'pointer';
-        el.onclick = function () { window.location.href = result.url; };
+        el.onclick = function () { window.location.href = targetUrl; };
       }
 
       var osLabels = { macos: 'macOS', windows: 'Windows', linux: 'Linux' };
       var label = osLabels[result.os] || 'your platform';
-      el.textContent = self.text
-        .replace('{os}', label)
-        .replace('{arch}', result.arch || '')
-        .replace('{version}', result.version || '');
+
+      if (result.matched) {
+        el.textContent = self.text
+          .replace('{os}', label)
+          .replace('{arch}', result.arch || '')
+          .replace('{version}', result.version || '');
+        el.title = result.asset || '';
+      } else {
+        el.textContent = self.noMatchText
+          .replace('{os}', label)
+          .replace('{arch}', result.arch || '')
+          .replace('{version}', result.version || '');
+        el.title = 'No download available for your platform';
+      }
 
       el.setAttribute('data-dl-os', result.os || '');
       el.setAttribute('data-dl-arch', result.arch || '');
-      el.title = result.asset || 'View releases';
+      el.setAttribute('data-dl-matched', result.matched ? 'true' : 'false');
 
-      // Long-press / right-click context: link to releases page
-      el.addEventListener('contextmenu', function (e) {
-        if (result.releasesUrl) {
-          e.preventDefault();
-          window.open(result.releasesUrl, '_blank');
-        }
-      });
+      // Opt-in: right-click / long-press opens releases page
+      if (self.contextMenu) {
+        el.addEventListener('contextmenu', function (e) {
+          if (result.releasesUrl) {
+            e.preventDefault();
+            window.open(result.releasesUrl, '_blank');
+          }
+        });
+      }
     });
   };
 
@@ -250,6 +269,180 @@
     });
   };
 
+  // --- Platform selector ---
+
+  var PLATFORM_LABELS = {
+    'macos-arm64': 'macOS (Apple Silicon)',
+    'macos-x64': 'macOS (Intel)',
+    'windows-x64': 'Windows (64-bit)',
+    'windows-arm64': 'Windows (ARM)',
+    'linux-x64': 'Linux (x86_64)',
+    'linux-arm64': 'Linux (ARM64)'
+  };
+
+  // Identify which platform key an asset belongs to (best effort)
+  function classifyAsset(asset) {
+    var name = asset.name.toLowerCase();
+    var results = [];
+
+    // macOS
+    if (/\.dmg$|\.pkg$|macos|darwin/i.test(name)) {
+      if (/aarch64|arm64/i.test(name)) results.push('macos-arm64');
+      else if (/x86[_-]?64|amd64|intel/i.test(name)) results.push('macos-x64');
+      else { results.push('macos-arm64'); results.push('macos-x64'); } // universal
+    }
+    // Windows
+    if (/\.exe$|\.msi$|windows|win32|win64/i.test(name)) {
+      if (/arm64/i.test(name)) results.push('windows-arm64');
+      else results.push('windows-x64');
+    }
+    // Linux
+    if (/\.deb$|\.rpm$|\.appimage$|\.flatpak$|\.snap$|linux/i.test(name)) {
+      if (/aarch64|arm64/i.test(name)) results.push('linux-arm64');
+      else if (/x86[_-]?64|amd64/i.test(name)) results.push('linux-x64');
+      else { results.push('linux-x64'); } // assume x64 if unspecified
+    }
+
+    return results;
+  }
+
+  function buildAssetLabel(asset) {
+    var ext = asset.name.match(/\.[^.]+$/);
+    ext = ext ? ext[0] : '';
+    var sizeMB = asset.size ? ' (' + (asset.size / 1048576).toFixed(1) + ' MB)' : '';
+    return asset.name + sizeMB;
+  }
+
+  DownloadLatest.prototype.attachSelector = function (selectorOrEl, opts) {
+    var el = typeof selectorOrEl === 'string'
+      ? document.querySelector(selectorOrEl)
+      : selectorOrEl;
+    if (!el) return;
+
+    opts = opts || {};
+    var includePlatforms = opts.include || null; // array of platform keys to include
+    var excludePlatforms = opts.exclude || [];   // array of platform keys to exclude
+
+    var self = this;
+    this.get().then(function (result) {
+      var assets = result.allAssets;
+      if (!assets.length) return;
+
+      // Group assets by platform
+      var grouped = {};
+      var platformOrder = ['macos-arm64', 'macos-x64', 'windows-x64', 'windows-arm64', 'linux-x64', 'linux-arm64'];
+
+      for (var i = 0; i < assets.length; i++) {
+        var platforms = classifyAsset(assets[i]);
+        for (var j = 0; j < platforms.length; j++) {
+          var pk = platforms[j];
+          if (excludePlatforms.indexOf(pk) !== -1) continue;
+          if (includePlatforms && includePlatforms.indexOf(pk) === -1) continue;
+          if (!grouped[pk]) grouped[pk] = [];
+          grouped[pk].push(assets[i]);
+        }
+      }
+
+      // Build select element
+      var select = document.createElement('select');
+      select.className = 'dl-latest-selector';
+      select.style.cssText = opts.style || '';
+
+      var detectedKey = result.os && result.arch ? (result.os + '-' + result.arch) : null;
+      var firstMatchValue = null;
+
+      for (var pi = 0; pi < platformOrder.length; pi++) {
+        var pk2 = platformOrder[pi];
+        if (!grouped[pk2]) continue;
+        var optgroup = document.createElement('optgroup');
+        optgroup.label = PLATFORM_LABELS[pk2] || pk2;
+
+        for (var ai = 0; ai < grouped[pk2].length; ai++) {
+          var a = grouped[pk2][ai];
+          var option = document.createElement('option');
+          option.value = a.url;
+          option.textContent = buildAssetLabel(a);
+          if (pk2 === detectedKey && !firstMatchValue) {
+            option.selected = true;
+            firstMatchValue = a.url;
+          }
+          optgroup.appendChild(option);
+        }
+        select.appendChild(optgroup);
+      }
+
+      // Also add any unclassified assets
+      var classified = {};
+      for (var k in grouped) {
+        for (var ci = 0; ci < grouped[k].length; ci++) {
+          classified[grouped[k][ci].name] = true;
+        }
+      }
+      var unclassified = [];
+      for (var ui = 0; ui < assets.length; ui++) {
+        if (!classified[assets[ui].name]) unclassified.push(assets[ui]);
+      }
+      if (unclassified.length) {
+        var otherGroup = document.createElement('optgroup');
+        otherGroup.label = 'Other';
+        for (var oi = 0; oi < unclassified.length; oi++) {
+          var opt2 = document.createElement('option');
+          opt2.value = unclassified[oi].url;
+          opt2.textContent = buildAssetLabel(unclassified[oi]);
+          otherGroup.appendChild(opt2);
+        }
+        select.appendChild(otherGroup);
+      }
+
+      // Download button next to selector
+      var dlBtn = document.createElement('a');
+      dlBtn.className = 'dl-latest-btn';
+      dlBtn.href = select.value || result.releasesUrl;
+      dlBtn.textContent = opts.buttonText || 'Download';
+      if (opts.buttonStyle) {
+        dlBtn.style.cssText = opts.buttonStyle;
+      }
+
+      select.addEventListener('change', function () {
+        dlBtn.href = this.value;
+      });
+
+      el.innerHTML = '';
+      el.appendChild(select);
+      el.appendChild(dlBtn);
+    });
+  };
+
+  // --- Default button styles (CSS custom properties for theming) ---
+
+  var stylesInjected = false;
+  function injectStyles(theme) {
+    if (stylesInjected) return;
+    stylesInjected = true;
+
+    var lightVars = '--dl-bg:#fff;--dl-color:#000;--dl-radius:8px;';
+    var darkVars = '--dl-bg:#24292f;--dl-color:#fff;--dl-radius:8px;';
+    var css = '.dl-latest-btn{display:inline-block;padding:12px 24px;' +
+      'background:var(--dl-bg);color:var(--dl-color);border-radius:var(--dl-radius);' +
+      'text-decoration:none;font:600 16px/1 system-ui,sans-serif;cursor:pointer;' +
+      'border:none;transition:opacity .15s}' +
+      '.dl-latest-btn:hover{opacity:.85;text-decoration:none}';
+
+    if (theme === 'auto') {
+      css = ':root{' + lightVars + '}' +
+        '@media(prefers-color-scheme:dark){:root{' + darkVars + '}}' + css;
+    } else if (theme === 'dark') {
+      css = ':root{' + darkVars + '}' + css;
+    } else {
+      // light or unset — default
+      css = ':root{' + lightVars + '}' + css;
+    }
+
+    var style = document.createElement('style');
+    style.textContent = css;
+    (document.head || document.documentElement).appendChild(style);
+  }
+
   // --- Auto-init from data-* attributes ---
 
   var initScript = (typeof document !== 'undefined') ? document.currentScript : null;
@@ -261,7 +454,10 @@
     var dl = new DownloadLatest({
       repo: ds.repo,
       version: ds.version || null,
-      text: ds.text || 'Download for {os}'
+      text: ds.text || 'Download for {os}',
+      noMatchText: ds.noMatchText || undefined,
+      noMatchUrl: ds.noMatchUrl || undefined,
+      contextMenu: 'contextMenu' in ds
     });
 
     if ('auto' in ds) {
@@ -277,18 +473,21 @@
     if (ds.target) {
       dl.attach(ds.target);
     } else {
-      // Create inline button
+      // Create inline button with CSS-variable-based styling
+      injectStyles(ds.theme || '');
       var btn = document.createElement('a');
       btn.className = 'dl-latest-btn';
       btn.textContent = 'Download';
-      btn.style.cssText = 'display:inline-block;padding:12px 24px;background:#fff;color:#000;' +
-        'border-radius:8px;text-decoration:none;font:600 16px/1 system-ui,sans-serif;cursor:pointer;';
       initScript.parentNode.insertBefore(btn, initScript.nextSibling);
       dl.attach(btn);
     }
 
     if (ds.fallback) {
       dl.attachFallback(ds.fallback);
+    }
+
+    if (ds.selector) {
+      dl.attachSelector(ds.selector);
     }
   }
 

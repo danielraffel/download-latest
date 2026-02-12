@@ -152,6 +152,40 @@
   });
 
   // =====================
+  // noMatchText / noMatchUrl config tests
+  // =====================
+
+  test('constructor defaults noMatchText', function () {
+    var dl = new DownloadLatest('a/b');
+    assertEqual(dl.noMatchText, 'View all downloads');
+  });
+
+  test('constructor accepts noMatchText', function () {
+    var dl = new DownloadLatest({ repo: 'a/b', noMatchText: 'Not available' });
+    assertEqual(dl.noMatchText, 'Not available');
+  });
+
+  test('constructor accepts noMatchUrl', function () {
+    var dl = new DownloadLatest({ repo: 'a/b', noMatchUrl: 'https://example.com/waitlist' });
+    assertEqual(dl.noMatchUrl, 'https://example.com/waitlist');
+  });
+
+  test('constructor defaults noMatchUrl to null', function () {
+    var dl = new DownloadLatest('a/b');
+    assert(dl.noMatchUrl === null, 'should default to null');
+  });
+
+  test('constructor defaults contextMenu to false', function () {
+    var dl = new DownloadLatest('a/b');
+    assert(dl.contextMenu === false, 'should default to false');
+  });
+
+  test('constructor accepts contextMenu: true', function () {
+    var dl = new DownloadLatest({ repo: 'a/b', contextMenu: true });
+    assert(dl.contextMenu === true, 'should be true when set');
+  });
+
+  // =====================
   // Integration test (live API)
   // =====================
 

@@ -28,7 +28,7 @@ No other build step. No bundler, no framework.
 - `matchAsset(assets, os, arch, customMatch)` — Iterates patterns, returns first matching asset.
 - `filterAssets(rawAssets)` — Strips `.sha256`, `.sig`, `.blockmap`, etc. from asset lists.
 - `fetchRelease(repo, version)` — GitHub API with 5-min `sessionStorage` cache (avoids 60/hr rate limit).
-- `DownloadLatest` class — `get()` returns a Promise with `{url, asset, os, arch, version, releasesUrl, allAssets, matched}`. `attach(el)` binds a button. `attachFallback(el)` renders all assets.
+- `DownloadLatest` class — `get()` returns a Promise with `{url, asset, os, arch, version, releasesUrl, allAssets, matched}`. `attach(el)` binds a button. `attachFallback(el)` renders all assets. `attachSelector(el, opts)` renders a platform dropdown grouped by OS.
 - `autoInit()` — Reads `data-*` from `document.currentScript` on load. This is how the zero-config script tag mode works.
 - Static methods exposed for testing: `DownloadLatest.detectPlatform`, `.matchAsset`, `.filterAssets`, `.DEFAULT_MATCH`.
 
@@ -37,14 +37,14 @@ No other build step. No bundler, no framework.
 - `configurator.js` — Generates embed snippets based on user selections (mode, source, version, platform overrides). Renders a live preview using the library.
 - `CNAME` — Points to `www.generouscorp.com`.
 
-**`examples/`** — Five standalone HTML files demonstrating different usage modes. All reference the library via `../download-latest.js` (relative path for local testing).
+**`examples/`** — Six standalone HTML files demonstrating different usage modes. All reference the library via `../download-latest.js` (relative path for local testing).
 
 **`test/`** — Browser-based test suite. Tests cover: asset filtering, per-platform matching with RustDesk fixture data, custom match overrides, detectPlatform shape validation, constructor behavior, and a live GitHub API integration test.
 
 ## Key Conventions
 
 - Plain ES5-compatible JS in the library (no arrow functions, no `let`/`const`, no template literals) for maximum browser compatibility.
-- The library never throws to the user — all errors fall back to a releases page link.
+- The library never throws to the user — all errors fall back to a releases page link. When no match is found, `noMatchText` is shown and links to `noMatchUrl` or the releases page.
 - Platform keys follow the `{os}-{arch}` format: `macos-arm64`, `macos-x64`, `windows-x64`, `windows-arm64`, `linux-x64`, `linux-arm64`.
 - jsDelivr CDN is the recommended hosting (`https://cdn.jsdelivr.net/gh/danielraffel/download-latest@{tag}/download-latest.min.js`). No deployment step needed — jsDelivr auto-serves any public GitHub repo by convention.
 

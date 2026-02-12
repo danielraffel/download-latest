@@ -76,6 +76,17 @@ p code { background: var(--surface); padding: 2px 6px; border-radius: 3px; }
   cursor: pointer; color: var(--text);
 }
 
+/* Mode options with descriptions */
+.mode-options { display: flex; flex-direction: column; gap: 6px; }
+.mode-option {
+  display: flex; align-items: flex-start; gap: 6px;
+  font-size: 14px; font-weight: normal; text-transform: none; letter-spacing: 0;
+  cursor: pointer; color: var(--text); line-height: 1.4;
+}
+.mode-option input[type="radio"] { margin-top: 3px; }
+.mode-option strong { color: var(--text); }
+.mode-option span { color: var(--text-muted); }
+
 .field-row { display: flex; gap: 12px; }
 .field-row .field { flex: 1; }
 
@@ -89,6 +100,12 @@ p code { background: var(--surface); padding: 2px 6px; border-radius: 3px; }
 .advanced-section[data-empty] summary::after { content: ' — n/a for this mode'; font-weight: normal;
   text-transform: none; letter-spacing: 0; font-size: 12px; }
 .field-hint { display: block; font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+.checkbox-label { display: inline-flex; align-items: center; gap: 8px;
+  font-size: 14px; font-weight: normal; text-transform: none; letter-spacing: 0;
+  cursor: pointer; color: var(--text); }
+.info-link { color: var(--text-muted); vertical-align: middle; margin-left: 4px; }
+.info-link:hover { color: var(--accent); }
+.info-link svg { vertical-align: -2px; }
 .color-input-wrap { display: flex; gap: 8px; align-items: center; }
 .color-input-wrap input[type="color"] { width: 36px; height: 36px; border: 1px solid var(--border);
   border-radius: var(--radius); background: var(--bg); padding: 2px; cursor: pointer; }
@@ -109,6 +126,14 @@ p code { background: var(--surface); padding: 2px 6px; border-radius: 3px; }
 .preview .dl-latest-btn { display: inline-block; padding: 12px 24px; background: #fff;
   color: #000; border-radius: 8px; text-decoration: none; font: 600 16px/1 system-ui, sans-serif;
   cursor: pointer; }
+
+/* Platform selector */
+.preview .dl-latest-selector {
+  padding: 8px 12px; background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  font-family: var(--font); font-size: 14px; margin-right: 8px;
+  min-width: 240px;
+}
 
 /* Assets list */
 .assets-found { margin-top: 12px; font-size: 13px; color: var(--text-muted); }
