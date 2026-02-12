@@ -1,6 +1,7 @@
 /* Configurator for download-latest */
 (function () {
   'use strict';
+  console.log('[configurator] IIFE starting');
 
   var repoInput = document.getElementById('cfg-repo');
   var testBtn = document.getElementById('cfg-test');
@@ -574,6 +575,7 @@
   // Clicking the info icon toggles the popup open/closed and prevents the
   // click from reaching the parent <label> (which would toggle the checkbox).
   // Clicking anywhere outside an open popup closes it.
+  console.log('[configurator] attaching tooltip listeners, found:', document.querySelectorAll('.regex-tip').length);
   document.querySelectorAll('.regex-tip').forEach(function (tip) {
     tip.addEventListener('click', function (e) {
       e.preventDefault();
@@ -598,4 +600,5 @@
   updateAdvancedVisibility();
   updatePlatformFieldStates();
   generate();
+  console.log('[configurator] IIFE complete');
 })();
