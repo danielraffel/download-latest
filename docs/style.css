@@ -83,14 +83,25 @@ p code { background: var(--surface); padding: 2px 6px; border-radius: 3px; }
   color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
 .collapsible .fields { margin-top: 12px; }
 
+/* Advanced section */
+.advanced-section { margin-bottom: 16px; }
+.advanced-section[data-empty] { pointer-events: none; opacity: 0.35; }
+.advanced-section[data-empty] summary::after { content: ' — n/a for this mode'; font-weight: normal;
+  text-transform: none; letter-spacing: 0; font-size: 12px; }
+.field-hint { display: block; font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+.color-input-wrap { display: flex; gap: 8px; align-items: center; }
+.color-input-wrap input[type="color"] { width: 36px; height: 36px; border: 1px solid var(--border);
+  border-radius: var(--radius); background: var(--bg); padding: 2px; cursor: pointer; }
+.color-input-wrap input[type="text"] { flex: 1; }
+
 /* Output */
 .output-wrap { position: relative; margin-top: 20px; }
 .output-wrap pre { margin: 0; }
 .copy-btn { position: absolute; top: 8px; right: 8px; background: var(--border);
-  color: var(--text); border: none; border-radius: var(--radius); padding: 4px 10px;
-  font-size: 12px; cursor: pointer; font-family: var(--font); }
+  color: var(--text); border: none; border-radius: var(--radius); padding: 6px 8px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
 .copy-btn:hover { background: var(--accent); color: var(--bg); }
-.copy-btn.copied { background: var(--green); }
+.copy-btn.copied { background: var(--green); color: var(--bg); }
 
 /* Preview */
 .preview { margin-top: 20px; padding: 24px; background: var(--bg);

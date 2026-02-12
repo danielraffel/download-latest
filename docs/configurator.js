@@ -9,10 +9,25 @@
   var sourceRadios = document.querySelectorAll('[name="cfg-source"]');
   var versionRadios = document.querySelectorAll('[name="cfg-version"]');
   var versionTag = document.getElementById('cfg-version-tag');
-  var overridesEl = document.getElementById('cfg-overrides');
   var outputCode = document.getElementById('cfg-output-code');
   var copyBtn = document.getElementById('cfg-copy');
+  var iconCopy = copyBtn.querySelector('.icon-copy');
+  var iconCheck = copyBtn.querySelector('.icon-check');
   var previewEl = document.getElementById('cfg-preview');
+
+  // Advanced section
+  var advancedEl = document.getElementById('cfg-advanced');
+  var advTextInput = document.getElementById('cfg-adv-text');
+  var advBgInput = document.getElementById('cfg-adv-bg');
+  var advBgPicker = document.getElementById('cfg-adv-bg-picker');
+  var advFgInput = document.getElementById('cfg-adv-fg');
+  var advFgPicker = document.getElementById('cfg-adv-fg-picker');
+  var advRadiusInput = document.getElementById('cfg-adv-radius');
+  var themeRadios = document.querySelectorAll('[name="cfg-theme"]');
+
+  var advTextFieldEl = document.getElementById('cfg-adv-text-field');
+  var advStyleFieldsEl = document.getElementById('cfg-adv-style-fields');
+  var advThemeFieldEl = document.getElementById('cfg-adv-theme-field');
 
   var overrideFields = {
     'macos-arm64': document.getElementById('cfg-match-macos-arm64'),
@@ -43,6 +58,65 @@
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
+  // --- Advanced section visibility ---
+
+  function updateAdvancedVisibility() {
+    var mode = getVal('cfg-mode');
+    // Modes that show button styling: button, custom
+    var hasButtonStyle = (mode === 'button');
+    // Modes that show text customization: button, custom
+    var hasText = (mode === 'button' || mode === 'custom');
+    // Modes with nothing relevant
+    var isEmpty = !hasText && !hasButtonStyle;
+
+    advTextFieldEl.style.display = hasText ? '' : 'none';
+    advStyleFieldsEl.style.display = hasButtonStyle ? '' : 'none';
+    advThemeFieldEl.style.display = hasButtonStyle ? '' : 'none';
+
+    if (isEmpty) {
+      advancedEl.setAttribute('data-empty', '');
+      advancedEl.removeAttribute('open');
+    } else {
+      advancedEl.removeAttribute('data-empty');
+    }
+  }
+
+  // --- Theme presets ---
+
+  function applyTheme(theme) {
+    if (theme === 'light') {
+      advBgInput.value = '#ffffff';
+      advFgInput.value = '#000000';
+      advBgPicker.value = '#ffffff';
+      advFgPicker.value = '#000000';
+    } else if (theme === 'dark') {
+      advBgInput.value = '#24292f';
+      advFgInput.value = '#ffffff';
+      advBgPicker.value = '#24292f';
+      advFgPicker.value = '#ffffff';
+    }
+    // 'none' clears
+    if (!theme) {
+      advBgInput.value = '';
+      advFgInput.value = '';
+      advBgPicker.value = '#ffffff';
+      advFgPicker.value = '#000000';
+    }
+    generate();
+  }
+
+  // Color picker sync
+  advBgPicker.addEventListener('input', function () { advBgInput.value = this.value; generate(); });
+  advFgPicker.addEventListener('input', function () { advFgInput.value = this.value; generate(); });
+  advBgInput.addEventListener('input', function () {
+    if (/^#[0-9a-f]{6}$/i.test(this.value)) advBgPicker.value = this.value;
+    generate();
+  });
+  advFgInput.addEventListener('input', function () {
+    if (/^#[0-9a-f]{6}$/i.test(this.value)) advFgPicker.value = this.value;
+    generate();
+  });
+
   // --- Test repo ---
 
   testBtn.addEventListener('click', async function () {
@@ -52,7 +126,7 @@
       return;
     }
 
-    assetsInfo.textContent = 'Fetching…';
+    assetsInfo.textContent = 'Fetching\u2026';
     try {
       var res = await fetch('https://api.github.com/repos/' + repo + '/releases/latest', {
         headers: { 'Accept': 'application/vnd.github+json' }
@@ -78,6 +152,22 @@
 
   // --- Generate snippet ---
 
+  function getAdvancedConfig() {
+    var text = advTextInput.value.trim();
+    var bg = advBgInput.value.trim();
+    var fg = advFgInput.value.trim();
+    var radius = advRadiusInput.value.trim();
+    return { text: text, bg: bg, fg: fg, radius: radius };
+  }
+
+  function buildStyleAttr(adv) {
+    var parts = [];
+    if (adv.bg) parts.push('background:' + adv.bg);
+    if (adv.fg) parts.push('color:' + adv.fg);
+    if (adv.radius) parts.push('border-radius:' + adv.radius);
+    return parts.length ? parts.join(';') : '';
+  }
+
   function generate() {
     var repo = repoInput.value.trim();
     if (!repo) { outputCode.textContent = ''; return; }
@@ -87,6 +177,7 @@
     var version = getVal('cfg-version');
     var tag = versionTag.value.trim();
     var overrides = getOverrides();
+    var adv = getAdvancedConfig();
 
     // Build src URL
     var src;
@@ -103,11 +194,16 @@
 
     var snippet;
 
-    // If overrides are set or mode is 'url', use programmatic approach
-    if (overrides || mode === 'url') {
+    // Determine if we need programmatic mode
+    var needsProgrammatic = overrides || mode === 'url' || (mode === 'button' && (adv.bg || adv.fg || adv.radius));
+
+    if (needsProgrammatic) {
       var configLines = ['  repo: \'' + repo + '\''];
       if (version === 'pinned' && tag) {
         configLines.push('  version: \'' + tag + '\'');
+      }
+      if (adv.text) {
+        configLines.push('  text: \'' + adv.text.replace(/'/g, "\\'") + '\'');
       }
       if (overrides) {
         var matchLines = [];
@@ -130,7 +226,13 @@
           '  const dl = new DownloadLatest({\n' + configLines.join(',\n') + '\n  });\n' +
           '  dl.attachFallback(\'#downloads\');\n<\/script>';
       } else {
-        snippet = '<a id="dl" href="#">Download</a>\n<script src="' + src + '"><\/script>\n<script>\n' +
+        // button or custom with programmatic
+        var styleStr = buildStyleAttr(adv);
+        var elTag = '<a id="dl" href="#">Download</a>';
+        if (styleStr) {
+          elTag = '<a id="dl" href="#" style="' + styleStr + '">Download</a>';
+        }
+        snippet = elTag + '\n<script src="' + src + '"><\/script>\n<script>\n' +
           '  const dl = new DownloadLatest({\n' + configLines.join(',\n') + '\n  });\n' +
           '  dl.attach(\'#dl\');\n<\/script>';
       }
@@ -139,6 +241,9 @@
       var attrs = ['  src="' + src + '"', '  data-repo="' + repo + '"'];
       if (version === 'pinned' && tag) {
         attrs.push('  data-version="' + tag + '"');
+      }
+      if (adv.text) {
+        attrs.push('  data-text="' + adv.text.replace(/"/g, '&quot;') + '"');
       }
       if (mode === 'auto') attrs.push('  data-auto');
       if (mode === 'fallback') attrs.push('  data-fallback="#downloads"');
@@ -153,10 +258,10 @@
     outputCode.textContent = snippet;
 
     // Update preview
-    updatePreview(repo, mode);
+    updatePreview(repo, mode, adv);
   }
 
-  function updatePreview(repo, mode) {
+  function updatePreview(repo, mode, adv) {
     previewEl.innerHTML = '';
     if (!repo) return;
 
@@ -164,7 +269,7 @@
       var div = document.createElement('div');
       div.id = 'preview-fallback';
       div.style.textAlign = 'left';
-      div.textContent = 'Loading assets…';
+      div.textContent = 'Loading assets\u2026';
       previewEl.appendChild(div);
       var dl = new DownloadLatest({ repo: repo });
       dl.attachFallback(div);
@@ -172,12 +277,17 @@
       var info = document.createElement('div');
       info.style.color = 'var(--text-muted)';
       info.style.fontSize = '14px';
+      info.textContent = 'Detecting\u2026';
       var dl2 = new DownloadLatest({ repo: repo });
       dl2.get().then(function (r) {
         if (mode === 'auto') {
-          info.textContent = 'Would redirect to: ' + (r.asset || r.url);
+          if (r.matched) {
+            info.innerHTML = 'Download will auto-start: <strong>' + escapeHtml(r.asset) + '</strong>';
+          } else {
+            info.textContent = 'No match for this platform \u2014 visitor will see the releases page';
+          }
         } else {
-          info.textContent = 'URL: ' + r.url;
+          info.innerHTML = 'URL: <a href="' + escapeHtml(r.url) + '" style="word-break:break-all">' + escapeHtml(r.url) + '</a>';
         }
       });
       previewEl.appendChild(info);
@@ -185,9 +295,15 @@
       var btn = document.createElement('a');
       btn.className = 'dl-latest-btn';
       btn.href = '#';
-      btn.textContent = 'Loading…';
+      btn.textContent = 'Loading\u2026';
+      // Apply advanced styles to preview
+      if (adv && adv.bg) btn.style.background = adv.bg;
+      if (adv && adv.fg) btn.style.color = adv.fg;
+      if (adv && adv.radius) btn.style.borderRadius = adv.radius;
       previewEl.appendChild(btn);
-      var dl3 = new DownloadLatest({ repo: repo });
+      var cfg = { repo: repo };
+      if (adv && adv.text) cfg.text = adv.text;
+      var dl3 = new DownloadLatest(cfg);
       dl3.attach(btn);
     }
   }
@@ -196,30 +312,41 @@
 
   repoInput.addEventListener('input', generate);
   versionTag.addEventListener('input', generate);
-  modeRadios.forEach(function (r) { r.addEventListener('change', generate); });
+  advTextInput.addEventListener('input', generate);
+  advRadiusInput.addEventListener('input', generate);
+  modeRadios.forEach(function (r) { r.addEventListener('change', function () {
+    updateAdvancedVisibility();
+    generate();
+  }); });
   sourceRadios.forEach(function (r) { r.addEventListener('change', generate); });
   versionRadios.forEach(function (r) { r.addEventListener('change', function () {
     versionTag.disabled = this.value !== 'pinned';
     generate();
   }); });
+  themeRadios.forEach(function (r) { r.addEventListener('change', function () {
+    applyTheme(this.value);
+  }); });
   for (var key in overrideFields) {
     overrideFields[key].addEventListener('input', generate);
   }
 
-  // Copy button
+  // Copy button with icon toggle
   copyBtn.addEventListener('click', function () {
     var text = outputCode.textContent;
     if (!text) return;
     navigator.clipboard.writeText(text).then(function () {
-      copyBtn.textContent = 'Copied!';
+      iconCopy.style.display = 'none';
+      iconCheck.style.display = '';
       copyBtn.classList.add('copied');
       setTimeout(function () {
-        copyBtn.textContent = 'Copy';
+        iconCopy.style.display = '';
+        iconCheck.style.display = 'none';
         copyBtn.classList.remove('copied');
       }, 2000);
     });
   });
 
-  // Initial generation
+  // Initial state
+  updateAdvancedVisibility();
   generate();
 })();
