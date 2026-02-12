@@ -269,10 +269,11 @@
 
       // Filter by excluded platforms if specified
       if (excludePlatforms.length > 0) {
+        var excludeOther = excludePlatforms.indexOf('other') !== -1;
         assets = assets.filter(function (asset) {
           var platforms = classifyAsset(asset);
-          // Keep asset if it has no platform classification or has at least one non-excluded platform
-          if (platforms.length === 0) return true;
+          // Unclassified assets: keep unless 'other' is in the exclude list
+          if (platforms.length === 0) return !excludeOther;
           for (var i = 0; i < platforms.length; i++) {
             if (excludePlatforms.indexOf(platforms[i]) === -1) return true;
           }
@@ -341,7 +342,7 @@
       else results.push('windows-x64');
     }
     // Linux
-    if (/\.deb$|\.rpm$|\.appimage$|\.flatpak$|\.snap$|linux/i.test(name)) {
+    if (/\.deb$|\.rpm$|\.appimage$|\.flatpak$|\.snap$|\.pkg\.tar\.\w+$|linux/i.test(name)) {
       if (/aarch64|arm64/i.test(name)) results.push('linux-arm64');
       else if (/x86[_-]?64|amd64/i.test(name)) results.push('linux-x64');
       else { results.push('linux-x64'); } // assume x64 if unspecified
@@ -415,7 +416,8 @@
         select.appendChild(optgroup);
       }
 
-      // Also add any unclassified assets
+      // Also add any unclassified assets (unless 'other' is excluded)
+      var excludeOther = excludePlatforms.indexOf('other') !== -1;
       var classified = {};
       for (var k in grouped) {
         for (var ci = 0; ci < grouped[k].length; ci++) {
@@ -423,8 +425,10 @@
         }
       }
       var unclassified = [];
-      for (var ui = 0; ui < assets.length; ui++) {
-        if (!classified[assets[ui].name]) unclassified.push(assets[ui]);
+      if (!excludeOther) {
+        for (var ui = 0; ui < assets.length; ui++) {
+          if (!classified[assets[ui].name]) unclassified.push(assets[ui]);
+        }
       }
       if (unclassified.length) {
         var otherGroup = document.createElement('optgroup');

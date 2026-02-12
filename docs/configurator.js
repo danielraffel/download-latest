@@ -40,7 +40,7 @@
   var advSelectorFieldEl = document.getElementById('cfg-adv-selector-field');
 
   // Platform overrides with checkboxes
-  var ALL_PLATFORMS = ['macos-arm64', 'macos-x64', 'windows-x64', 'windows-arm64', 'linux-x64', 'linux-arm64', 'ios-arm64', 'android-arm64'];
+  var ALL_PLATFORMS = ['macos-arm64', 'macos-x64', 'windows-x64', 'windows-arm64', 'linux-x64', 'linux-arm64', 'ios-arm64', 'android-arm64', 'other'];
 
   var overrideFields = {};
   var platformToggles = {};

@@ -28,6 +28,7 @@
     { name: 'rustdesk-1.4.5-unsigned.tar.gz', browser_download_url: 'https://example.com/source.tar.gz', size: 5000000 },
     { name: 'rustdesk-1.4.5.ipa', browser_download_url: 'https://example.com/rustdesk.ipa', size: 15000000 },
     { name: 'rustdesk-1.4.5-arm64.apk', browser_download_url: 'https://example.com/arm64.apk', size: 14000000 },
+    { name: 'rustdesk-1.4.5-0-x86_64.pkg.tar.zst', browser_download_url: 'https://example.com/x86_64.pkg.tar.zst', size: 7000000 },
     { name: 'rustdesk-1.4.5-aarch64.dmg.sha256', browser_download_url: 'https://example.com/aarch64.dmg.sha256', size: 100 },
     { name: 'rustdesk-1.4.5-x86_64.exe.blockmap', browser_download_url: 'https://example.com/x86_64.exe.blockmap', size: 200 },
   ];
@@ -49,7 +50,7 @@
   });
 
   test('filterAssets keeps valid assets', function () {
-    assert(filteredAssets.length === 13, 'expected 13 assets after filtering, got ' + filteredAssets.length);
+    assert(filteredAssets.length === 14, 'expected 14 assets after filtering, got ' + filteredAssets.length);
   });
 
   // =====================
@@ -130,6 +131,16 @@
   test('classifyAsset identifies .dmg as macOS', function () {
     var result = DownloadLatest.classifyAsset({ name: 'app-aarch64.dmg' });
     assert(result.indexOf('macos-arm64') !== -1, 'should classify aarch64.dmg as macos-arm64');
+  });
+
+  test('classifyAsset identifies .pkg.tar.zst as linux-x64', function () {
+    var result = DownloadLatest.classifyAsset({ name: 'rustdesk-1.4.5-0-x86_64.pkg.tar.zst' });
+    assert(result.indexOf('linux-x64') !== -1, 'should classify x86_64.pkg.tar.zst as linux-x64');
+  });
+
+  test('classifyAsset returns empty for generic .tar.gz', function () {
+    var result = DownloadLatest.classifyAsset({ name: 'rustdesk-1.4.5-unsigned.tar.gz' });
+    assert(result.length === 0, 'generic .tar.gz should be unclassified, got ' + JSON.stringify(result));
   });
 
   // =====================
