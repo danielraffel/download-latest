@@ -15,72 +15,10 @@
       <p>Link to the latest GitHub release for any platform.<br>Auto-detects OS &amp; architecture, or target a specific file. One script tag.</p>
       <div class="links">
         <a href="https://github.com/danielraffel/download-latest">GitHub</a>
-        <a href="https://github.com/danielraffel/download-latest/tree/main/examples">Examples</a>
-        <a href="#configurator">Configurator</a>
+        <a href="#examples">Examples</a>
+        <a href="#quick-start">Quick Start</a>
       </div>
     </header>
-
-    <!-- Quick Start -->
-    <section>
-      <h2>Quick Start</h2>
-      <h3>One script tag</h3>
-      <pre><code>&lt;script
-  src="https://cdn.jsdelivr.net/gh/danielraffel/download-latest@1.0.0/download-latest.min.js"
-  data-repo="your-org/your-app"
-&gt;&lt;/script&gt;</code></pre>
-      <p>This inserts a download button that links to the right asset for each visitor's platform.</p>
-
-      <h3>Bind to your own button</h3>
-      <pre><code>&lt;a id="dl" href="#"&gt;Download&lt;/a&gt;
-&lt;script
-  src="https://cdn.jsdelivr.net/gh/danielraffel/download-latest@1.0.0/download-latest.min.js"
-  data-repo="your-org/your-app"
-  data-target="#dl"
-&gt;&lt;/script&gt;</code></pre>
-
-      <h3>Programmatic</h3>
-      <pre><code>&lt;script src="https://cdn.jsdelivr.net/gh/danielraffel/download-latest@1.0.0/download-latest.min.js"&gt;&lt;/script&gt;
-&lt;script&gt;
-  const dl = new DownloadLatest({ repo: 'your-org/your-app' });
-  dl.get().then(r =&gt; console.log(r.url));
-&lt;/script&gt;</code></pre>
-    </section>
-
-    <!-- Configuration Reference -->
-    <section>
-      <h2>Configuration</h2>
-      <table>
-        <thead><tr><th>Attribute</th><th>Description</th></tr></thead>
-        <tbody>
-          <tr><td><code>data-repo</code></td><td><strong>Required.</strong> GitHub <code>owner/repo</code></td></tr>
-          <tr><td><code>data-target</code></td><td>CSS selector of existing element to bind</td></tr>
-          <tr><td><code>data-auto</code></td><td>Auto-redirect to download (no button)</td></tr>
-          <tr><td><code>data-fallback</code></td><td>Selector for element to fill with all asset links</td></tr>
-          <tr><td><code>data-version</code></td><td>Pin to a release tag (e.g., <code>v2.1.0</code>)</td></tr>
-          <tr><td><code>data-text</code></td><td>Button text. Use <code>{os}</code>, <code>{arch}</code>, <code>{version}</code></td></tr>
-          <tr><td><code>data-no-match-text</code></td><td>Text shown when visitor's platform has no match. Default: <code>View all downloads</code></td></tr>
-          <tr><td><code>data-no-match-url</code></td><td>URL when no match (default: releases page). E.g., a waitlist URL</td></tr>
-          <tr><td><code>data-selector</code></td><td>CSS selector for element to render platform dropdown into</td></tr>
-          <tr><td><code>data-theme</code></td><td>Button theme: <code>auto</code> (follows system), <code>dark</code>, or omit for light</td></tr>
-          <tr><td><code>data-pattern</code></td><td>Regex to match a specific file by name, ignoring platform detection (e.g., <code>\.ipa$</code>)</td></tr>
-          <tr><td><code>data-context-menu</code></td><td>Enable right-click to open releases page (disabled by default)</td></tr>
-        </tbody>
-      </table>
-    </section>
-
-    <!-- Hosting -->
-    <section>
-      <h2>Hosting</h2>
-      <h3>jsDelivr CDN (recommended)</h3>
-      <pre><code>https://cdn.jsdelivr.net/gh/danielraffel/download-latest@1.0.0/download-latest.min.js</code></pre>
-      <p>Pin to a version (<code>@1.0.0</code>) or track latest (<code>@main</code>). Free, no setup required — jsDelivr serves any public GitHub repo automatically.</p>
-
-      <h3>Raw GitHub</h3>
-      <pre><code>https://raw.githubusercontent.com/danielraffel/download-latest/main/download-latest.min.js</code></pre>
-
-      <h3>Self-hosted</h3>
-      <p>Copy <code>download-latest.min.js</code> into your project. Use the configurator below to generate your snippet.</p>
-    </section>
 
     <!-- Configurator -->
     <section id="configurator">
@@ -209,7 +147,9 @@
               <input type="text" id="cfg-match-macos-x64" placeholder="e.g. x86_64\.dmg$">
             </div>
             <div class="field platform-field">
-              <label class="checkbox-label"><input type="checkbox" class="cfg-platform-toggle" data-platform="windows-x64" checked> Windows x64</label>
+              <label class="checkbox-label"><input type="checkbox" class="cfg-platform-toggle" data-platform="windows-x64" checked> Windows x64
+                <span class="regex-tip"><svg class="tip-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg><span class="tip-popup">Regex examples to target specific files:<br><code>(?!.*sciter).*x86_64\.exe$</code> — skip sciter variants<br><code>\.msi$</code> — prefer MSI installers<br><code>(?!.*x86[^_]).*\.exe$</code> — skip 32-bit exe</span></span>
+              </label>
               <input type="text" id="cfg-match-windows-x64" placeholder="e.g. x86_64\.exe$">
             </div>
             <div class="field platform-field">
@@ -217,11 +157,15 @@
               <input type="text" id="cfg-match-windows-arm64" placeholder="e.g. arm64\.exe$">
             </div>
             <div class="field platform-field">
-              <label class="checkbox-label"><input type="checkbox" class="cfg-platform-toggle" data-platform="linux-x64" checked> Linux x64</label>
+              <label class="checkbox-label"><input type="checkbox" class="cfg-platform-toggle" data-platform="linux-x64" checked> Linux x64
+                <span class="regex-tip"><svg class="tip-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg><span class="tip-popup">Regex examples to target specific files:<br><code>(?!.*sciter).*x86_64\.deb$</code> — skip sciter variants<br><code>(?!.*suse).*x86_64\.rpm$</code> — skip SUSE RPMs<br><code>x86_64\.AppImage$</code> — prefer AppImage<br><code>(?!.*flatpak).*x86_64\.deb$</code> — skip flatpaks</span></span>
+              </label>
               <input type="text" id="cfg-match-linux-x64" placeholder="e.g. amd64\.deb$">
             </div>
             <div class="field platform-field">
-              <label class="checkbox-label"><input type="checkbox" class="cfg-platform-toggle" data-platform="linux-arm64" checked> Linux arm64</label>
+              <label class="checkbox-label"><input type="checkbox" class="cfg-platform-toggle" data-platform="linux-arm64" checked> Linux arm64
+                <span class="regex-tip"><svg class="tip-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg><span class="tip-popup">Regex examples to target specific files:<br><code>aarch64\.deb$</code> — prefer .deb<br><code>aarch64\.AppImage$</code> — prefer AppImage<br><code>(?!.*suse).*aarch64\.rpm$</code> — skip SUSE RPMs</span></span>
+              </label>
               <input type="text" id="cfg-match-linux-arm64" placeholder="e.g. aarch64\.deb$">
             </div>
             <div class="field platform-field">
@@ -229,7 +173,9 @@
               <input type="text" id="cfg-match-ios-arm64" placeholder="e.g. \.ipa$">
             </div>
             <div class="field platform-field">
-              <label class="checkbox-label"><input type="checkbox" class="cfg-platform-toggle" data-platform="android-arm64" checked> Android</label>
+              <label class="checkbox-label"><input type="checkbox" class="cfg-platform-toggle" data-platform="android-arm64" checked> Android
+                <span class="regex-tip"><svg class="tip-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg><span class="tip-popup">Regex examples to target specific files:<br><code>arm64[^/]*\.apk$</code> — arm64 APK only<br><code>(?!.*armv7|.*universal|.*x86_64).*\.apk$</code> — skip non-arm64<br><code>(?!.*unsigned).*arm64.*\.apk$</code> — skip unsigned builds</span></span>
+              </label>
               <input type="text" id="cfg-match-android-arm64" placeholder="e.g. \.apk$">
             </div>
             <div class="field platform-field">
@@ -250,6 +196,86 @@
         <div class="preview" id="cfg-preview"></div>
 
       </div>
+    </section>
+
+    <!-- Quick Start -->
+    <section id="quick-start">
+      <h2>Quick Start</h2>
+      <h3>One script tag</h3>
+      <pre><code>&lt;script
+  src="https://cdn.jsdelivr.net/gh/danielraffel/download-latest@1.0.0/download-latest.min.js"
+  data-repo="your-org/your-app"
+&gt;&lt;/script&gt;</code></pre>
+      <p>This inserts a download button that links to the right asset for each visitor's platform.</p>
+
+      <h3>Bind to your own button</h3>
+      <pre><code>&lt;a id="dl" href="#"&gt;Download&lt;/a&gt;
+&lt;script
+  src="https://cdn.jsdelivr.net/gh/danielraffel/download-latest@1.0.0/download-latest.min.js"
+  data-repo="your-org/your-app"
+  data-target="#dl"
+&gt;&lt;/script&gt;</code></pre>
+
+      <h3>Programmatic</h3>
+      <pre><code>&lt;script src="https://cdn.jsdelivr.net/gh/danielraffel/download-latest@1.0.0/download-latest.min.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+  const dl = new DownloadLatest({ repo: 'your-org/your-app' });
+  dl.get().then(r =&gt; console.log(r.url));
+&lt;/script&gt;</code></pre>
+    </section>
+
+    <!-- Configuration Reference -->
+    <section>
+      <h2>Configuration</h2>
+      <table>
+        <thead><tr><th>Attribute</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>data-repo</code></td><td><strong>Required.</strong> GitHub <code>owner/repo</code></td></tr>
+          <tr><td><code>data-target</code></td><td>CSS selector of existing element to bind</td></tr>
+          <tr><td><code>data-auto</code></td><td>Auto-redirect to download (no button)</td></tr>
+          <tr><td><code>data-fallback</code></td><td>Selector for element to fill with all asset links</td></tr>
+          <tr><td><code>data-version</code></td><td>Pin to a release tag (e.g., <code>v2.1.0</code>)</td></tr>
+          <tr><td><code>data-text</code></td><td>Button text. Use <code>{os}</code>, <code>{arch}</code>, <code>{version}</code></td></tr>
+          <tr><td><code>data-no-match-text</code></td><td>Text shown when visitor's platform has no match. Default: <code>View all downloads</code></td></tr>
+          <tr><td><code>data-no-match-url</code></td><td>URL when no match (default: releases page). E.g., a waitlist URL</td></tr>
+          <tr><td><code>data-selector</code></td><td>CSS selector for element to render platform dropdown into</td></tr>
+          <tr><td><code>data-theme</code></td><td>Button theme: <code>auto</code> (follows system), <code>dark</code>, or omit for light</td></tr>
+          <tr><td><code>data-pattern</code></td><td>Regex to match a specific file by name, ignoring platform detection (e.g., <code>\.ipa$</code>)</td></tr>
+          <tr><td><code>data-context-menu</code></td><td>Enable right-click to open releases page (disabled by default)</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Hosting -->
+    <section>
+      <h2>Hosting</h2>
+      <h3>jsDelivr CDN (recommended)</h3>
+      <pre><code>https://cdn.jsdelivr.net/gh/danielraffel/download-latest@1.0.0/download-latest.min.js</code></pre>
+      <p>Pin to a version (<code>@1.0.0</code>) or track latest (<code>@main</code>). Free, no setup required — jsDelivr serves any public GitHub repo automatically.</p>
+
+      <h3>Raw GitHub</h3>
+      <pre><code>https://raw.githubusercontent.com/danielraffel/download-latest/main/download-latest.min.js</code></pre>
+
+      <h3>Self-hosted</h3>
+      <p>Copy <code>download-latest.min.js</code> into your project. Use the configurator above to generate your snippet.</p>
+    </section>
+
+    <!-- Examples -->
+    <section id="examples">
+      <h2>Examples</h2>
+      <p>Standalone HTML files demonstrating each use case. View source to see the code.</p>
+      <table>
+        <thead><tr><th>Example</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><a href="../examples/minimal.html">Minimal</a></td><td>One script tag — auto-creates a download button</td></tr>
+          <tr><td><a href="../examples/custom-button.html">Custom button</a></td><td>Bind to your own styled button/link</td></tr>
+          <tr><td><a href="../examples/url-only.html">URL only</a></td><td>Get the download URL programmatically — no DOM changes</td></tr>
+          <tr><td><a href="../examples/fallback-list.html">All assets list</a></td><td>Show every downloadable file from the release</td></tr>
+          <tr><td><a href="../examples/auto-redirect.html">Auto-redirect</a></td><td>Automatically start the download on page load</td></tr>
+          <tr><td><a href="../examples/platform-selector.html">Platform selector</a></td><td>Dropdown menu grouped by OS with all available assets</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:13px; color:var(--text-muted)">Each example uses <code>rustdesk/rustdesk</code> as a demo repo. The <a href="#configurator">configurator</a> above generates ready-to-use snippets for any repo.</p>
     </section>
 
     <!-- How it works -->

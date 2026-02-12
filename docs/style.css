@@ -149,6 +149,19 @@ footer { text-align: center; color: var(--text-muted); font-size: 13px;
 footer a { color: var(--text-muted); }
 footer a:hover { color: var(--accent); }
 
+/* Regex tooltip */
+.regex-tip { position: relative; display: inline-flex; align-items: center; }
+.regex-tip .tip-icon { color: var(--text-muted); cursor: pointer; margin-left: 6px; flex-shrink: 0; }
+.regex-tip .tip-icon:hover { color: var(--accent); }
+.regex-tip .tip-popup {
+  display: none; position: absolute; left: 24px; top: -8px; z-index: 10;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 10px 14px; font-size: 12px; line-height: 1.6; white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0,0,0,.4); color: var(--text-muted);
+}
+.regex-tip .tip-popup code { font-size: 11px; background: var(--bg); padding: 1px 5px; border-radius: 3px; color: var(--text); }
+.regex-tip:hover .tip-popup, .regex-tip .tip-popup:hover { display: block; }
+
 /* Table */
 table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 14px; }
 th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); }

@@ -46,7 +46,7 @@ This inserts a download button that auto-detects the visitor's platform and link
   const dl = new DownloadLatest({ repo: 'your-org/your-app' });
   dl.get().then(result => {
     console.log(result.url);   // direct download URL
-    console.log(result.os);    // 'macos', 'windows', or 'linux'
+    console.log(result.os);    // 'macos', 'windows', 'linux', 'ios', or 'android'
     console.log(result.arch);  // 'arm64' or 'x64'
   });
 </script>
@@ -65,6 +65,7 @@ This inserts a download button that auto-detects the visitor's platform and link
 | `data-selector` | CSS selector of an element to render a platform dropdown into |
 | `data-version` | Pin to a specific release tag (e.g., `v2.1.0`) |
 | `data-text` | Button text template. Use `{os}`, `{arch}`, `{version}` as placeholders. Default: `"Download for {os}"` |
+| `data-pattern` | Regex to match a specific file by name, ignoring platform detection (e.g., `\.ipa$`) |
 | `data-no-match-text` | Text shown when visitor's platform has no matching binary. Default: `"View all downloads"` |
 | `data-no-match-url` | URL to link to when no binary matches (default: releases page) |
 | `data-theme` | Button theme: `auto` (follows system light/dark), `dark`, or omit for light default |
@@ -77,6 +78,7 @@ new DownloadLatest({
   repo: 'owner/repo',              // required
   version: 'v2.1.0',               // optional: pin to a tag
   text: 'Get {os} build',          // optional: button text
+  pattern: '\\.ipa$',              // optional: match a specific file regardless of platform
   noMatchText: 'Not available',    // optional: text when no match found
   noMatchUrl: 'https://...',       // optional: URL when no match (default: releases page)
   contextMenu: true,               // optional: right-click opens releases page (default: false)
@@ -86,6 +88,18 @@ new DownloadLatest({
   }
 })
 ```
+
+## Platform Detection
+
+Detects macOS, Windows, Linux, iOS, and Android via `navigator.userAgentData` (Chromium) with fallback to user-agent string parsing. Architecture detection covers arm64 and x64.
+
+| Platform | Detection method |
+|---|---|
+| macOS | `userAgentData.platform` or UA `mac` |
+| Windows | `userAgentData.platform` or UA `win` |
+| Linux | `userAgentData.platform` or UA `linux`/`cros` |
+| iOS | UA `iphone`/`ipad`/`ipod` |
+| Android | `userAgentData.platform` or UA `android` |
 
 ## Custom Matching
 
@@ -101,6 +115,8 @@ new DownloadLatest({
     'windows-arm64': /arm64-setup\.exe$/i,
     'linux-x64':     /amd64\.deb$/i,
     'linux-arm64':   /arm64\.deb$/i,
+    'ios-arm64':     /\.ipa$/i,
+    'android-arm64': /arm64\.apk$/i,
   }
 });
 ```
@@ -117,6 +133,27 @@ Each value can be a single regex or an array (tried in order, first match wins).
 | Windows arm64 | `arm64.exe`, `x86_64.exe`, any `.exe` |
 | Linux x64 | `x86_64.AppImage`, `amd64.deb`, `x86_64.deb` |
 | Linux arm64 | `aarch64.AppImage`, `arm64.deb`, `aarch64.deb` |
+| iOS arm64 | `.ipa` |
+| Android arm64 | `arm64.apk`, any `.apk`, `arm64.aab` |
+
+### Pattern mode
+
+Match a specific file by name regardless of the visitor's platform. Useful for linking to a specific binary like an iOS `.ipa`:
+
+```js
+const dl = new DownloadLatest({
+  repo: 'owner/repo',
+  pattern: '\\.ipa$',
+  text: 'Download iOS app'
+});
+dl.attach('#my-button');
+```
+
+Or via data attribute:
+
+```html
+<script src="..." data-repo="owner/repo" data-pattern="\.ipa$" data-target="#btn"></script>
+```
 
 ### Theming (light/dark mode)
 
@@ -161,13 +198,19 @@ When no binary matches the visitor's platform (e.g., a Windows user visiting a m
 
 ### `dl.attach(selectorOrElement)`
 
-Binds a download link/button to the matched asset. Sets `href`, updates text, adds `data-dl-os`, `data-dl-arch`, and `data-dl-matched` attributes. Right-click opens the releases page.
+Binds a download link/button to the matched asset. Sets `href`, updates text, adds `data-dl-os`, `data-dl-arch`, and `data-dl-matched` attributes.
 
 When no match is found, shows `noMatchText` and links to `noMatchUrl` (or the releases page).
 
-### `dl.attachFallback(selectorOrElement)`
+### `dl.attachFallback(selectorOrElement, options?)`
 
 Populates an element with links to all assets (with file sizes).
+
+```js
+dl.attachFallback('#downloads', {
+  exclude: ['windows-arm64', 'other']  // hide specific platforms and unclassified files
+});
+```
 
 ### `dl.attachSelector(selectorOrElement, options?)`
 
@@ -176,9 +219,29 @@ Renders a platform selector dropdown grouped by OS. Auto-detects the visitor's p
 ```js
 dl.attachSelector('#download-area', {
   include: ['macos-arm64', 'macos-x64', 'linux-x64'],  // only these platforms
-  exclude: ['windows-arm64'],                            // hide these platforms
+  exclude: ['windows-arm64', 'other'],                   // hide these platforms
   buttonText: 'Download',                                // download button text
 });
+```
+
+### Platform keys
+
+Used for `match`, `include`, and `exclude` options:
+
+`macos-arm64`, `macos-x64`, `windows-x64`, `windows-arm64`, `linux-x64`, `linux-arm64`, `ios-arm64`, `android-arm64`
+
+Use `'other'` in `exclude` arrays to filter out unclassified files (e.g., source archives, generic tarballs).
+
+### `DownloadLatest.classifyAsset(asset)`
+
+Static method that returns an array of platform keys an asset belongs to. Useful for custom filtering:
+
+```js
+DownloadLatest.classifyAsset({ name: 'app-aarch64.dmg' });
+// → ['macos-arm64']
+
+DownloadLatest.classifyAsset({ name: 'source.tar.gz' });
+// → []  (unclassified)
 ```
 
 ## Hosting
@@ -221,6 +284,8 @@ See the [`examples/`](examples/) directory:
 - [fallback-list.html](examples/fallback-list.html) — show all available downloads
 - [auto-redirect.html](examples/auto-redirect.html) — auto-start download on page load
 - [platform-selector.html](examples/platform-selector.html) — dropdown menu grouped by OS
+
+Or use the [interactive configurator](https://www.generouscorp.com/download-latest/) to generate a snippet for your repo.
 
 ## License
 
