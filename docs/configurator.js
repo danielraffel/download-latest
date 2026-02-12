@@ -1,7 +1,6 @@
 /* Configurator for download-latest */
 (function () {
   'use strict';
-  console.log('[configurator] IIFE starting');
 
   var repoInput = document.getElementById('cfg-repo');
   var testBtn = document.getElementById('cfg-test');
@@ -572,33 +571,34 @@
   });
 
   // Regex tooltip click-to-pin behaviour.
-  // Clicking the info icon toggles the popup open/closed and prevents the
-  // click from reaching the parent <label> (which would toggle the checkbox).
-  // Clicking anywhere outside an open popup closes it.
-  console.log('[configurator] attaching tooltip listeners, found:', document.querySelectorAll('.regex-tip').length);
-  document.querySelectorAll('.regex-tip').forEach(function (tip) {
-    tip.addEventListener('click', function (e) {
+  // Uses a capturing listener on the overrides container so we can intercept
+  // clicks on .regex-tip BEFORE they reach the parent <label> (which would
+  // toggle the checkbox). A separate document listener closes open popups
+  // when clicking outside.
+  overridesEl.addEventListener('click', function (e) {
+    var tip = e.target.closest('.regex-tip');
+    if (tip) {
       e.preventDefault();
       e.stopPropagation();
       var wasActive = tip.classList.contains('active');
-      // Close any other open tooltips first
       document.querySelectorAll('.regex-tip.active').forEach(function (t) {
         t.classList.remove('active');
       });
       if (!wasActive) {
         tip.classList.add('active');
       }
-    });
-  });
-  document.addEventListener('click', function () {
-    document.querySelectorAll('.regex-tip.active').forEach(function (t) {
-      t.classList.remove('active');
-    });
+    }
+  }, true);  // capturing phase — fires before the label's click handler
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('.regex-tip')) {
+      document.querySelectorAll('.regex-tip.active').forEach(function (t) {
+        t.classList.remove('active');
+      });
+    }
   });
 
   // Initial state
   updateAdvancedVisibility();
   updatePlatformFieldStates();
   generate();
-  console.log('[configurator] IIFE complete');
 })();
