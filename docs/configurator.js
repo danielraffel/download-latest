@@ -320,6 +320,12 @@
         snippet = elTag + '\n<script src="' + src + '"><\/script>\n<script>\n' +
           '  const dl = new DownloadLatest({\n' + configLines.join(',\n') + '\n  });\n' +
           '  dl.attach(\'#dl\');\n<\/script>';
+      } else if (adv.showSelector) {
+        // Selector mode: dropdown replaces standalone button
+        var selectorOptsStr2 = excludeOptsStr ? ', ' + excludeOptsStr : '';
+        snippet = '<div id="dl-selector"></div>\n<script src="' + src + '"><\/script>\n<script>\n' +
+          '  const dl = new DownloadLatest({\n' + configLines.join(',\n') + '\n  });\n' +
+          '  dl.attachSelector(\'#dl-selector\'' + selectorOptsStr2 + ');\n<\/script>';
       } else {
         // button or custom with programmatic
         var styleStr2 = buildStyleAttr(adv);
@@ -327,15 +333,9 @@
         if (styleStr2) {
           elTag2 = '<a id="dl" href="#" style="' + styleStr2 + '">Download</a>';
         }
-        var attachCalls = '  dl.attach(\'#dl\');\n';
-        if (adv.showSelector) {
-          var selectorOptsStr = excludeOptsStr ? ', ' + excludeOptsStr : '';
-          elTag2 += '\n<div id="dl-selector"></div>';
-          attachCalls += '  dl.attachSelector(\'#dl-selector\'' + selectorOptsStr + ');\n';
-        }
         snippet = elTag2 + '\n<script src="' + src + '"><\/script>\n<script>\n' +
           '  const dl = new DownloadLatest({\n' + configLines.join(',\n') + '\n  });\n' +
-          attachCalls + '<\/script>';
+          '  dl.attach(\'#dl\');\n<\/script>';
       }
     } else {
       // Simple data-attribute approach
@@ -416,6 +416,18 @@
       if (adv && adv.noMatchUrl) patternCfg.noMatchUrl = adv.noMatchUrl;
       var dl4 = new DownloadLatest(patternCfg);
       dl4.attach(btn);
+    } else if (adv && adv.showSelector) {
+      // Selector mode: just the dropdown, no standalone button
+      var selectorDiv = document.createElement('div');
+      previewEl.appendChild(selectorDiv);
+      var cfg2 = { repo: repo };
+      if (adv.text) cfg2.text = adv.text;
+      if (adv.noMatchText) cfg2.noMatchText = adv.noMatchText;
+      if (adv.noMatchUrl) cfg2.noMatchUrl = adv.noMatchUrl;
+      var dl3 = new DownloadLatest(cfg2);
+      var selectorOpts = {};
+      if (excluded && excluded.length > 0) selectorOpts.exclude = excluded;
+      dl3.attachSelector(selectorDiv, selectorOpts);
     } else {
       // button or custom mode
       var btn2 = document.createElement('a');
@@ -428,22 +440,12 @@
       if (adv && adv.radius) btn2.style.borderRadius = adv.radius;
       previewEl.appendChild(btn2);
 
-      var cfg2 = { repo: repo };
-      if (adv && adv.text) cfg2.text = adv.text;
-      if (adv && adv.noMatchText) cfg2.noMatchText = adv.noMatchText;
-      if (adv && adv.noMatchUrl) cfg2.noMatchUrl = adv.noMatchUrl;
-      var dl3 = new DownloadLatest(cfg2);
-      dl3.attach(btn2);
-
-      // Show platform selector in preview if checked
-      if (adv && adv.showSelector) {
-        var selectorDiv = document.createElement('div');
-        selectorDiv.style.marginTop = '12px';
-        previewEl.appendChild(selectorDiv);
-        var selectorOpts = {};
-        if (excluded && excluded.length > 0) selectorOpts.exclude = excluded;
-        dl3.attachSelector(selectorDiv, selectorOpts);
-      }
+      var cfg3 = { repo: repo };
+      if (adv && adv.text) cfg3.text = adv.text;
+      if (adv && adv.noMatchText) cfg3.noMatchText = adv.noMatchText;
+      if (adv && adv.noMatchUrl) cfg3.noMatchUrl = adv.noMatchUrl;
+      var dl5 = new DownloadLatest(cfg3);
+      dl5.attach(btn2);
     }
   }
 
